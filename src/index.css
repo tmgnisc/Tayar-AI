@@ -8,48 +8,49 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 245 50% 6%;
-    --foreground: 210 100% 98%;
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
 
-    --card: 245 45% 8%;
-    --card-foreground: 210 100% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
 
-    --popover: 245 50% 10%;
-    --popover-foreground: 210 100% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 250 100% 65%;
+    --primary: 262 83% 58%;
     --primary-foreground: 210 100% 98%;
 
-    --secondary: 215 85% 60%;
+    --secondary: 220 91% 54%;
     --secondary-foreground: 210 100% 98%;
 
-    --muted: 245 30% 20%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 275 80% 65%;
+    --accent: 262 83% 58%;
     --accent-foreground: 210 100% 98%;
 
-    --destructive: 0 85% 60%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 100% 98%;
 
-    --border: 245 30% 18%;
-    --input: 245 30% 18%;
-    --ring: 250 100% 65%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 262 83% 58%;
 
     --radius: 1rem;
 
     /* Gradient tokens */
-    --gradient-primary: linear-gradient(135deg, hsl(250 100% 65%) 0%, hsl(275 80% 65%) 100%);
-    --gradient-secondary: linear-gradient(135deg, hsl(215 85% 60%) 0%, hsl(250 100% 65%) 100%);
-    --gradient-mesh: radial-gradient(at 0% 0%, hsl(250 100% 65% / 0.3) 0px, transparent 50%),
-                     radial-gradient(at 100% 0%, hsl(275 80% 65% / 0.3) 0px, transparent 50%),
-                     radial-gradient(at 100% 100%, hsl(215 85% 60% / 0.3) 0px, transparent 50%),
-                     radial-gradient(at 0% 100%, hsl(250 100% 65% / 0.2) 0px, transparent 50%);
+    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(220 91% 54%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(220 91% 54%) 0%, hsl(262 83% 58%) 100%);
+    --gradient-mesh: radial-gradient(at 0% 0%, hsl(262 83% 58% / 0.05) 0px, transparent 50%),
+                     radial-gradient(at 100% 0%, hsl(220 91% 54% / 0.05) 0px, transparent 50%),
+                     radial-gradient(at 100% 100%, hsl(262 83% 58% / 0.05) 0px, transparent 50%),
+                     radial-gradient(at 0% 100%, hsl(220 91% 54% / 0.05) 0px, transparent 50%);
     
     /* Animation tokens */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --shadow-glow: 0 0 40px hsl(250 100% 65% / 0.3);
-    --shadow-card: 0 10px 30px -10px hsl(250 100% 20% / 0.4);
+    --shadow-glow: 0 0 40px hsl(262 83% 58% / 0.15);
+    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-card-hover: 0 10px 30px -10px hsl(262 83% 58% / 0.15);
   }
 }
 
@@ -64,22 +65,37 @@ All colors MUST be HSL.
   }
 
   .gradient-mesh {
-    background: var(--gradient-mesh), hsl(var(--background));
+    background: hsl(var(--background));
+    position: relative;
+  }
+
+  .gradient-mesh::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--gradient-mesh);
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .gradient-mesh > * {
+    position: relative;
+    z-index: 1;
   }
 
   .glass-card {
-    background: hsl(var(--card) / 0.4);
+    background: hsl(var(--card));
     backdrop-filter: blur(20px);
-    border: 1px solid hsl(var(--border) / 0.5);
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-card);
+    transition: var(--transition-smooth);
   }
 
-  body {
-    @apply bg-background text-foreground;
+  .glass-card:hover {
+    box-shadow: var(--shadow-card-hover);
   }
 }

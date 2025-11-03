@@ -8,14 +8,14 @@ export const FloatingParticles = () => {
       {particles.map((_, i) => (
         <motion.div
           key={i}
-          className="absolute w-2 h-2 rounded-full bg-primary/30"
+          className="absolute w-2 h-2 rounded-full bg-primary/20"
           style={{
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
           }}
           animate={{
             y: [0, -30, 0],
-            opacity: [0.3, 0.8, 0.3],
+            opacity: [0.1, 0.4, 0.1],
             scale: [1, 1.2, 1],
           }}
           transition={{

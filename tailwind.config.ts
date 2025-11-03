@@ -75,8 +75,16 @@ export default {
           "100%": { opacity: "1", transform: "scale(1)" },
         },
         "glow": {
-          "0%, 100%": { boxShadow: "0 0 20px hsl(250 100% 65% / 0.3)" },
-          "50%": { boxShadow: "0 0 40px hsl(250 100% 65% / 0.6)" },
+          "0%, 100%": { boxShadow: "0 0 20px hsl(262 83% 58% / 0.2)" },
+          "50%": { boxShadow: "0 0 40px hsl(262 83% 58% / 0.4)" },
+        },
+        "shimmer": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+        "pulse-slow": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.8" },
         },
       },
       animation: {
@@ -86,6 +94,8 @@ export default {
         "fade-in": "fade-in 0.6s ease-out",
         "scale-in": "scale-in 0.4s ease-out",
         "glow": "glow 2s ease-in-out infinite",
+        "shimmer": "shimmer 2s linear infinite",
+        "pulse-slow": "pulse-slow 3s ease-in-out infinite",
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
