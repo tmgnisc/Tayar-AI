@@ -13,16 +13,48 @@ export default function SignUp() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Account created!",
-      description: "Welcome to Tayar.ai. Let's get you started.",
-    });
-    setTimeout(() => navigate("/dashboard"), 1000);
+    setLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Account created!",
+          description: "Welcome to Tayar.ai. Redirecting to login...",
+        });
+        setTimeout(() => navigate("/auth/signin"), 1500);
+      } else {
+        toast({
+          title: "Registration failed",
+          description: data.message || "Failed to create account",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to server",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -102,9 +134,10 @@ export default function SignUp() {
 
               <Button
                 type="submit"
+                disabled={loading}
                 className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-xl"
               >
-                Create Account
+                {loading ? "Creating Account..." : "Create Account"}
               </Button>
             </form>
 

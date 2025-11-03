@@ -12,16 +12,57 @@ import { useToast } from "@/hooks/use-toast";
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Welcome back!",
-      description: "Redirecting to your dashboard...",
-    });
-    setTimeout(() => navigate("/dashboard"), 1000);
+    setLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        toast({
+          title: "Welcome back!",
+          description: "Redirecting to your dashboard...",
+        });
+
+        // Redirect based on role
+        if (data.user.role === 'admin') {
+          setTimeout(() => navigate("/admin"), 500);
+        } else {
+          setTimeout(() => navigate("/dashboard"), 500);
+        }
+      } else {
+        toast({
+          title: "Login failed",
+          description: data.message || "Invalid credentials",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to server",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -86,9 +127,10 @@ export default function SignIn() {
 
               <Button
                 type="submit"
+                disabled={loading}
                 className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-xl"
               >
-                Sign In
+                {loading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
 
