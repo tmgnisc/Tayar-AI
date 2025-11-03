@@ -28,6 +28,24 @@ export const Navbar = ({ showAuth = true, showProfile = false }: NavbarProps) =>
           </span>
         </Link>
 
+        <div className="hidden md:flex items-center gap-6">
+          <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            Home
+          </Link>
+          <Link to="/about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            About
+          </Link>
+          <Link to="/features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            Features
+          </Link>
+          <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            Pricing
+          </Link>
+          <Link to="/contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            Contact
+          </Link>
+        </div>
+
         <div className="flex items-center gap-4">
           {showAuth && (
             <>
