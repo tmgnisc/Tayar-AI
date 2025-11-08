@@ -59,8 +59,11 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
         voiceId: '21m00Tcm4TlvDq8ikWAM', // Rachel voice - professional and clear
       },
       firstMessage: `Hello${config.userName ? ` ${config.userName}` : ''}! Welcome to your technical interview. I'll be conducting your interview today for the ${config.role} position at ${config.difficulty} level. Let's begin with a few questions about your experience and technical background.`,
-      serverUrl: `${BACKEND_URL}/api/webhooks/vapi`,
-      serverUrlSecret: process.env.VAPI_WEBHOOK_SECRET || 'your-webhook-secret',
+      // Webhooks are optional - only set if BACKEND_URL is configured and accessible
+      ...(BACKEND_URL && BACKEND_URL !== 'http://localhost:3000' ? {
+        serverUrl: `${BACKEND_URL}/api/webhooks/vapi`,
+        serverUrlSecret: process.env.VAPI_WEBHOOK_SECRET || 'your-webhook-secret',
+      } : {}),
       recordingEnabled: true,
       recordingTranscriptionEnabled: true,
     };
