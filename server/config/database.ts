@@ -37,6 +37,10 @@ export async function initializeDatabase() {
     await migrateTables();
     console.log('✅ Tables migrated');
     
+    // Migrate interview table for Vapi integration
+    await migrateInterviewTable();
+    console.log('✅ Interview table migrated for Vapi');
+    
     // Seed initial data
     await seedDomains();
     console.log('✅ Domains seeded');
@@ -103,11 +107,16 @@ async function createTables() {
         started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         completed_at TIMESTAMP NULL,
         duration_minutes INT,
+        vapi_call_id VARCHAR(255) NULL,
+        vapi_assistant_id VARCHAR(255) NULL,
+        vapi_recording_url TEXT NULL,
+        conversation_transcript TEXT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         INDEX idx_user_id (user_id),
-        INDEX idx_status (status)
+        INDEX idx_status (status),
+        INDEX idx_vapi_call_id (vapi_call_id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
@@ -277,6 +286,127 @@ async function migrateTables() {
     }
   } catch (error: any) {
     console.error('Migration error:', error);
+    // Don't throw - allow the app to continue even if migration fails
+  } finally {
+    connection.release();
+  }
+}
+
+async function migrateInterviewTable() {
+  const connection = await pool.getConnection();
+  
+  try {
+    // Check if interviews table exists
+    const [interviewsTable]: any = await connection.query(
+      "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'interviews'"
+    );
+    
+    if (interviewsTable.length > 0) {
+      // Check and add vapi_call_id column
+      const [vapiCallIdColumn]: any = await connection.query(
+        `SELECT 1 FROM information_schema.columns 
+         WHERE table_schema = DATABASE() 
+         AND table_name = 'interviews' 
+         AND column_name = 'vapi_call_id'`
+      );
+      
+      if (vapiCallIdColumn.length === 0) {
+        console.log('🔄 Adding vapi_call_id column to interviews table...');
+        try {
+          await connection.query(`
+            ALTER TABLE interviews 
+            ADD COLUMN vapi_call_id VARCHAR(255) NULL AFTER duration_minutes
+          `);
+          console.log('✅ Added vapi_call_id column');
+        } catch (error: any) {
+          console.warn('Could not add vapi_call_id column:', error.message);
+        }
+      }
+      
+      // Check and add vapi_assistant_id column
+      const [vapiAssistantIdColumn]: any = await connection.query(
+        `SELECT 1 FROM information_schema.columns 
+         WHERE table_schema = DATABASE() 
+         AND table_name = 'interviews' 
+         AND column_name = 'vapi_assistant_id'`
+      );
+      
+      if (vapiAssistantIdColumn.length === 0) {
+        console.log('🔄 Adding vapi_assistant_id column to interviews table...');
+        try {
+          await connection.query(`
+            ALTER TABLE interviews 
+            ADD COLUMN vapi_assistant_id VARCHAR(255) NULL AFTER vapi_call_id
+          `);
+          console.log('✅ Added vapi_assistant_id column');
+        } catch (error: any) {
+          console.warn('Could not add vapi_assistant_id column:', error.message);
+        }
+      }
+      
+      // Check and add vapi_recording_url column
+      const [vapiRecordingUrlColumn]: any = await connection.query(
+        `SELECT 1 FROM information_schema.columns 
+         WHERE table_schema = DATABASE() 
+         AND table_name = 'interviews' 
+         AND column_name = 'vapi_recording_url'`
+      );
+      
+      if (vapiRecordingUrlColumn.length === 0) {
+        console.log('🔄 Adding vapi_recording_url column to interviews table...');
+        try {
+          await connection.query(`
+            ALTER TABLE interviews 
+            ADD COLUMN vapi_recording_url TEXT NULL AFTER vapi_assistant_id
+          `);
+          console.log('✅ Added vapi_recording_url column');
+        } catch (error: any) {
+          console.warn('Could not add vapi_recording_url column:', error.message);
+        }
+      }
+      
+      // Check and add conversation_transcript column
+      const [conversationTranscriptColumn]: any = await connection.query(
+        `SELECT 1 FROM information_schema.columns 
+         WHERE table_schema = DATABASE() 
+         AND table_name = 'interviews' 
+         AND column_name = 'conversation_transcript'`
+      );
+      
+      if (conversationTranscriptColumn.length === 0) {
+        console.log('🔄 Adding conversation_transcript column to interviews table...');
+        try {
+          await connection.query(`
+            ALTER TABLE interviews 
+            ADD COLUMN conversation_transcript TEXT NULL AFTER vapi_recording_url
+          `);
+          console.log('✅ Added conversation_transcript column');
+        } catch (error: any) {
+          console.warn('Could not add conversation_transcript column:', error.message);
+        }
+      }
+      
+      // Add index for vapi_call_id
+      try {
+        const [indexExists]: any = await connection.query(
+          `SELECT 1 FROM information_schema.statistics 
+           WHERE table_schema = DATABASE() 
+           AND table_name = 'interviews' 
+           AND index_name = 'idx_vapi_call_id'`
+        );
+        
+        if (indexExists.length === 0) {
+          await connection.query(`
+            CREATE INDEX idx_vapi_call_id ON interviews(vapi_call_id)
+          `);
+          console.log('✅ Added index for vapi_call_id');
+        }
+      } catch (error: any) {
+        console.warn('Could not create vapi_call_id index:', error.message);
+      }
+    }
+  } catch (error: any) {
+    console.error('Interview table migration error:', error);
     // Don't throw - allow the app to continue even if migration fails
   } finally {
     connection.release();

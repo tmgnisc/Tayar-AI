@@ -153,10 +153,58 @@ router.post('/interviews', async (req: AuthRequest, res) => {
     }
 
     try {
+      // Get user info for interview
+      const [users]: any = await connection.query(
+        'SELECT name, email FROM users WHERE id = ?',
+        [userId]
+      );
+      const user = users[0];
+
+      // Create interview record
       const [result]: any = await connection.query(
         'INSERT INTO interviews (user_id, role, difficulty, language) VALUES (?, ?, ?, ?)',
         [userId, role, difficulty, language]
       );
+
+      const interviewId = result.insertId;
+
+      // Initialize Vapi call for web-based interview
+      let vapiCallId = null;
+      let vapiAssistantId = null;
+
+      try {
+        const { createVapiAssistant, createVapiWebCall } = await import('../services/vapi');
+        
+        // First create the assistant
+        vapiAssistantId = await createVapiAssistant({
+          interviewId,
+          userId,
+          role,
+          difficulty,
+          userName: user.name,
+        });
+
+        // Then create the call with the assistant
+        const vapiCall = await createVapiWebCall({
+          interviewId,
+          userId,
+          role,
+          difficulty,
+          userName: user.name,
+          assistantId: vapiAssistantId,
+        });
+
+        vapiCallId = vapiCall.id;
+
+        // Update interview with Vapi call ID and assistant ID
+        await connection.query(
+          'UPDATE interviews SET vapi_call_id = ?, vapi_assistant_id = ? WHERE id = ?',
+          [vapiCallId, vapiAssistantId, interviewId]
+        );
+      } catch (vapiError: any) {
+        console.error('Vapi initialization error:', vapiError);
+        // Continue even if Vapi fails - interview can still be created
+      }
 
       // Log activity
       await connection.query(
@@ -166,13 +214,53 @@ router.post('/interviews', async (req: AuthRequest, res) => {
 
       res.status(201).json({
         message: 'Interview started',
-        interviewId: result.insertId,
+        interviewId,
+        vapiCallId,
+        vapiStatus: vapiCallId ? 'initialized' : 'failed',
       });
     } finally {
       connection.release();
     }
   } catch (error: any) {
     console.error('Start interview error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get Vapi call token for frontend
+router.get('/interviews/:id/vapi-token', async (req: AuthRequest, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const userId = req.userId!;
+    const interviewId = req.params.id;
+
+    try {
+      const [interviews]: any = await connection.query(
+        'SELECT vapi_call_id FROM interviews WHERE id = ? AND user_id = ?',
+        [interviewId, userId]
+      );
+
+      if (interviews.length === 0) {
+        return res.status(404).json({ message: 'Interview not found' });
+      }
+
+      const interview = interviews[0];
+
+      if (!interview.vapi_call_id) {
+        return res.status(400).json({ message: 'Vapi call not initialized' });
+      }
+
+      // In a real implementation, you would generate a token for the frontend
+      // For now, return the call ID
+      res.json({
+        callId: interview.vapi_call_id,
+        // In production, you might want to generate a secure token here
+      });
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Get Vapi token error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
