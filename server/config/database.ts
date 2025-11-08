@@ -33,6 +33,10 @@ export async function initializeDatabase() {
     await createTables();
     console.log('✅ Tables created/verified');
     
+    // Migrate existing tables (add new columns if they don't exist)
+    await migrateTables();
+    console.log('✅ Tables migrated');
+    
     // Seed initial data
     await seedDomains();
     console.log('✅ Domains seeded');
@@ -155,6 +159,115 @@ async function createTables() {
         INDEX idx_status (status)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+  } finally {
+    connection.release();
+  }
+}
+
+async function migrateTables() {
+  const connection = await pool.getConnection();
+  
+  try {
+    // Check if users table exists and add missing columns
+    const [usersTable]: any = await connection.query(
+      "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'users'"
+    );
+    
+    if (usersTable.length > 0) {
+      // Check if domain_id column exists
+      const [domainIdColumn]: any = await connection.query(
+        `SELECT 1 FROM information_schema.columns 
+         WHERE table_schema = DATABASE() 
+         AND table_name = 'users' 
+         AND column_name = 'domain_id'`
+      );
+      
+      if (domainIdColumn.length === 0) {
+        console.log('🔄 Adding domain_id column to users table...');
+        // First, ensure domains table exists (it might not have the foreign key constraint yet)
+        try {
+          await connection.query(`
+            ALTER TABLE users 
+            ADD COLUMN domain_id INT NULL AFTER role
+          `);
+          console.log('✅ Added domain_id column');
+        } catch (error: any) {
+          console.warn('Could not add domain_id column:', error.message);
+        }
+      }
+      
+      // Check if level column exists
+      const [levelColumn]: any = await connection.query(
+        `SELECT 1 FROM information_schema.columns 
+         WHERE table_schema = DATABASE() 
+         AND table_name = 'users' 
+         AND column_name = 'level'`
+      );
+      
+      if (levelColumn.length === 0) {
+        console.log('🔄 Adding level column to users table...');
+        try {
+          await connection.query(`
+            ALTER TABLE users 
+            ADD COLUMN level ENUM('beginner', 'intermediate', 'senior', 'principal', 'lead') NULL AFTER domain_id
+          `);
+          console.log('✅ Added level column');
+        } catch (error: any) {
+          console.warn('Could not add level column:', error.message);
+        }
+      }
+      
+      // Add index for domain_id if it doesn't exist
+      try {
+        await connection.query(`
+          CREATE INDEX IF NOT EXISTS idx_domain_id ON users(domain_id)
+        `);
+      } catch (error: any) {
+        // Index might already exist, that's okay
+        console.warn('Could not create domain_id index:', error.message);
+      }
+      
+      // Add foreign key constraint if domains table exists and constraint doesn't exist
+      // Re-check if domain_id column exists (it might have been added above)
+      const [domainIdColumnCheck]: any = await connection.query(
+        `SELECT 1 FROM information_schema.columns 
+         WHERE table_schema = DATABASE() 
+         AND table_name = 'users' 
+         AND column_name = 'domain_id'`
+      );
+      
+      if (domainIdColumnCheck.length > 0) {
+        const [domainsTable]: any = await connection.query(
+          "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'domains'"
+        );
+        
+        if (domainsTable.length > 0) {
+          const [fkExists]: any = await connection.query(
+            `SELECT 1 FROM information_schema.table_constraints 
+             WHERE table_schema = DATABASE() 
+             AND table_name = 'users' 
+             AND constraint_type = 'FOREIGN KEY' 
+             AND constraint_name LIKE '%domain_id%'`
+          );
+          
+          if (fkExists.length === 0) {
+            try {
+              await connection.query(`
+                ALTER TABLE users 
+                ADD CONSTRAINT fk_users_domain_id 
+                FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE SET NULL
+              `);
+              console.log('✅ Added foreign key constraint for domain_id');
+            } catch (error: any) {
+              console.warn('Could not add foreign key constraint:', error.message);
+            }
+          }
+        }
+      }
+    }
+  } catch (error: any) {
+    console.error('Migration error:', error);
+    // Don't throw - allow the app to continue even if migration fails
   } finally {
     connection.release();
   }

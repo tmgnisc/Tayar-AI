@@ -151,15 +151,32 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
     const connection = await pool.getConnection();
     
     try {
-      const [users]: any = await connection.query(
-        `SELECT u.id, u.name, u.email, u.role, u.domain_id, u.level, 
-         u.subscription_type, u.subscription_status, u.created_at, u.last_login,
-         d.id as d_id, d.name as domain_name, d.description as domain_description
-         FROM users u
-         LEFT JOIN domains d ON u.domain_id = d.id
-         WHERE u.id = ?`,
-        [req.userId]
-      );
+      // Try query with domain join first
+      let users: any;
+      
+      try {
+        const [result]: any = await connection.query(
+          `SELECT u.id, u.name, u.email, u.role, u.domain_id, u.level, 
+           u.subscription_type, u.subscription_status, u.created_at, u.last_login,
+           d.id as d_id, d.name as domain_name, d.description as domain_description
+          FROM users u
+          LEFT JOIN domains d ON u.domain_id = d.id
+          WHERE u.id = ?`,
+          [req.userId]
+        );
+        users = result;
+      } catch (joinError: any) {
+        // If JOIN fails (columns might not exist), use simpler query
+        console.warn('Domain join failed in /me, using simple query:', joinError.message);
+        const [result]: any = await connection.query(
+          `SELECT u.id, u.name, u.email, u.role, 
+           u.subscription_type, u.subscription_status, u.created_at, u.last_login
+          FROM users u
+          WHERE u.id = ?`,
+          [req.userId]
+        );
+        users = result;
+      }
 
       if (users.length === 0) {
         return res.status(404).json({ message: 'User not found' });
@@ -172,13 +189,13 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
           name: user.name,
           email: user.email,
           role: user.role,
-          domain_id: user.domain_id,
-          domain: user.domain_id ? {
-            id: user.domain_id,
-            name: user.domain_name,
-            description: user.domain_description,
+          domain_id: user.domain_id || null,
+          domain: (user.domain_id && user.d_id) ? {
+            id: user.d_id,
+            name: user.domain_name || null,
+            description: user.domain_description || null,
           } : null,
-          level: user.level,
+          level: user.level || null,
           subscription_type: user.subscription_type,
           subscription_status: user.subscription_status,
           created_at: user.created_at,
@@ -190,7 +207,11 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
     }
   } catch (error: any) {
     console.error('Get user error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

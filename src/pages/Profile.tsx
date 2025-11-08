@@ -25,8 +25,8 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
-  const [domainId, setDomainId] = useState<string>("");
-  const [level, setLevel] = useState<string>("");
+  const [domainId, setDomainId] = useState<string | undefined>(undefined);
+  const [level, setLevel] = useState<string | undefined>(undefined);
   const [domains, setDomains] = useState<Domain[]>([]);
 
   useEffect(() => {
@@ -42,9 +42,17 @@ export default function Profile() {
 
       if (response.ok) {
         const data = await response.json();
-        setName(data.user.name);
-        setDomainId(data.user.domain_id?.toString() || "");
-        setLevel(data.user.level || "");
+        setName(data.user.name || "");
+        setDomainId(data.user.domain_id?.toString());
+        setLevel(data.user.level);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Profile fetch error:', errorData);
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to load profile",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -74,8 +82,8 @@ export default function Profile() {
         method: 'PATCH',
         body: JSON.stringify({
           name,
-          domain_id: domainId ? parseInt(domainId) : null,
-          level: level || null,
+          domain_id: domainId && domainId !== "none" ? parseInt(domainId) : null,
+          level: level && level !== "none" ? level : null,
         }),
       }, token);
 
@@ -183,12 +191,15 @@ export default function Profile() {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="domain">Domain</Label>
-                <Select value={domainId} onValueChange={setDomainId}>
+                <Select 
+                  value={domainId || "none"} 
+                  onValueChange={(value) => setDomainId(value === "none" ? undefined : value)}
+                >
                   <SelectTrigger id="domain" className="h-12">
                     <SelectValue placeholder="Select your domain" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {domains.map((domain) => (
                       <SelectItem key={domain.id} value={domain.id.toString()}>
                         {domain.name}
@@ -206,12 +217,15 @@ export default function Profile() {
 
               <div className="space-y-2">
                 <Label htmlFor="level">Experience Level</Label>
-                <Select value={level} onValueChange={setLevel}>
+                <Select 
+                  value={level || "none"} 
+                  onValueChange={(value) => setLevel(value === "none" ? undefined : value)}
+                >
                   <SelectTrigger id="level" className="h-12">
                     <SelectValue placeholder="Select your level" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     <SelectItem value="beginner">Beginner - Entry Level</SelectItem>
                     <SelectItem value="intermediate">Intermediate - Mid Level</SelectItem>
                     <SelectItem value="senior">Senior - Senior Level</SelectItem>
