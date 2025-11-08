@@ -219,9 +219,19 @@ async function migrateTables() {
       
       // Add index for domain_id if it doesn't exist
       try {
-        await connection.query(`
-          CREATE INDEX IF NOT EXISTS idx_domain_id ON users(domain_id)
-        `);
+        const [indexExists]: any = await connection.query(
+          `SELECT 1 FROM information_schema.statistics 
+           WHERE table_schema = DATABASE() 
+           AND table_name = 'users' 
+           AND index_name = 'idx_domain_id'`
+        );
+        
+        if (indexExists.length === 0) {
+          await connection.query(`
+            CREATE INDEX idx_domain_id ON users(domain_id)
+          `);
+          console.log('✅ Added index for domain_id');
+        }
       } catch (error: any) {
         // Index might already exist, that's okay
         console.warn('Could not create domain_id index:', error.message);
