@@ -17,6 +17,8 @@ interface VapiCallConfig {
   userName?: string;
   userPhone?: string;
   assistantId?: string;
+  domainName?: string;
+  domainDescription?: string;
 }
 
 interface VapiCallResponse {
@@ -33,12 +35,14 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
   try {
     const assistantName = `Interview Assistant - ${config.role} (${config.difficulty})`;
     
-    // Generate interview prompt using Gemini service
+    // Generate interview prompt using Gemini service with domain information
     const interviewPrompt = generateInterviewPrompt({
       role: config.role,
       difficulty: config.difficulty as 'beginner' | 'intermediate' | 'advanced' | 'expert',
       language: 'english',
       userName: config.userName,
+      domainName: config.domainName,
+      domainDescription: config.domainDescription,
     });
     
     // Create assistant with Gemini integration
@@ -58,7 +62,12 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
         provider: '11labs',
         voiceId: '21m00Tcm4TlvDq8ikWAM', // Rachel voice - professional and clear
       },
-      firstMessage: `Hello${config.userName ? ` ${config.userName}` : ''}! Welcome to your technical interview. I'll be conducting your interview today for the ${config.role} position at ${config.difficulty} level. Let's begin with a few questions about your experience and technical background.`,
+      // First message that will be spoken immediately when call starts
+      firstMessage: `Hello${config.userName ? ` ${config.userName}` : ''}! Welcome to your technical interview practice session. I'm your AI interviewer, and I'll be conducting your interview today for the ${config.role} position at ${config.difficulty} level. Let's begin! First question: Can you tell me about your experience with ${config.role}? What technologies and tools are you most familiar with in this domain?`,
+      
+      // Ensure the assistant speaks first (no waiting for user input)
+      responseDelay: 0, // Start speaking immediately
+      
       // Webhooks are optional - only set if BACKEND_URL is configured and accessible
       ...(BACKEND_URL && BACKEND_URL !== 'http://localhost:3000' ? {
         serverUrl: `${BACKEND_URL}/api/webhooks/vapi`,
@@ -66,6 +75,11 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
       } : {}),
       recordingEnabled: true,
       recordingTranscriptionEnabled: true,
+      
+      // Additional settings to ensure smooth voice interaction
+      silenceTimeoutSeconds: 5, // Wait 5 seconds of silence before speaking
+      endCallFunctionEnabled: false, // Don't allow assistant to end call
+      backgroundSound: null, // No background sound
     };
 
     const response = await axios.post(

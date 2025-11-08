@@ -13,23 +13,131 @@ interface InterviewContext {
   difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   language: string;
   userName?: string;
+  domainName?: string;
+  domainDescription?: string;
+}
+
+/**
+ * Generate example questions for a specific domain and difficulty
+ */
+function generateExampleQuestions(domain: string, difficulty: string): string {
+  const domainLower = domain.toLowerCase();
+  
+  // Frontend questions
+  if (domainLower.includes('frontend')) {
+    if (difficulty === 'beginner') {
+      return `- "What is React and why would you use it?"
+- "Explain the difference between state and props."
+- "How do you handle user events in React?"`;
+    } else if (difficulty === 'intermediate') {
+      return `- "How would you optimize a React application for performance?"
+- "Explain React hooks and when you would use useEffect vs useState."
+- "How do you manage state in a large React application?"`;
+    } else {
+      return `- "How would you architect a large-scale React application with multiple teams?"
+- "Explain your approach to code splitting and lazy loading."
+- "How would you implement a design system at scale?"`;
+    }
+  }
+  
+  // Backend questions
+  if (domainLower.includes('backend')) {
+    if (difficulty === 'beginner') {
+      return `- "What is an API and how does REST work?"
+- "Explain the difference between GET and POST requests."
+- "How do you handle errors in a Node.js application?"`;
+    } else if (difficulty === 'intermediate') {
+      return `- "How would you design a RESTful API for a social media platform?"
+- "Explain database indexing and why it's important."
+- "How do you handle concurrent requests in Node.js?"`;
+    } else {
+      return `- "How would you design a distributed system handling millions of requests?"
+- "Explain database sharding and when you would use it."
+- "How would you implement caching strategies in a microservices architecture?"`;
+    }
+  }
+  
+  // MERN questions
+  if (domainLower.includes('mern')) {
+    if (difficulty === 'beginner') {
+      return `- "What is the MERN stack and what does each component do?"
+- "How do you connect a React frontend to an Express backend?"
+- "Explain MongoDB and how it differs from SQL databases."`;
+    } else if (difficulty === 'intermediate') {
+      return `- "How would you structure a full-stack MERN application?"
+- "Explain authentication and authorization in a MERN app."
+- "How do you handle state management across the MERN stack?"`;
+    } else {
+      return `- "How would you scale a MERN application for high traffic?"
+- "Explain your approach to real-time features in MERN."
+- "How would you implement microservices in a MERN architecture?"`;
+    }
+  }
+  
+  // DevOps questions
+  if (domainLower.includes('devops')) {
+    if (difficulty === 'beginner') {
+      return `- "What is CI/CD and why is it important?"
+- "Explain the difference between Docker and virtual machines."
+- "What is version control and how do you use it?"`;
+    } else if (difficulty === 'intermediate') {
+      return `- "How would you set up a CI/CD pipeline for a web application?"
+- "Explain container orchestration and when you would use Kubernetes."
+- "How do you monitor and troubleshoot production systems?"`;
+    } else {
+      return `- "How would you design a scalable infrastructure for a global application?"
+- "Explain your approach to infrastructure as code."
+- "How would you implement disaster recovery and backup strategies?"`;
+    }
+  }
+  
+  // Generic questions based on difficulty
+  if (difficulty === 'beginner') {
+    return `- "What programming languages are you most comfortable with in ${domain}?"
+- "Can you explain a basic concept in ${domain}?"
+- "What tools do you use for ${domain} development?"`;
+  } else if (difficulty === 'intermediate') {
+    return `- "Describe a challenging ${domain} project you worked on."
+- "How do you approach debugging in ${domain}?"
+- "What are some best practices in ${domain}?"`;
+  } else {
+    return `- "How would you architect a large-scale ${domain} system?"
+- "Describe your experience with ${domain} at an advanced level."
+- "How do you mentor others in ${domain}?"`;
+  }
 }
 
 /**
  * Generate interview system prompt based on role and difficulty
  */
 export function generateInterviewPrompt(context: InterviewContext): string {
-  const { role, difficulty, language, userName } = context;
+  const { role, difficulty, language, userName, domainName, domainDescription } = context;
+  
+  // Use domain name if available, otherwise map role
+  const domain = domainName || role;
+  const domainDesc = domainDescription || '';
   
   const roleDescriptions: Record<string, string> = {
     'frontend': 'Frontend Developer specializing in React, TypeScript, and modern web technologies',
     'backend': 'Backend Developer specializing in Node.js, databases, and API design',
     'full-stack': 'Full Stack Developer with expertise in both frontend and backend technologies',
+    'full stack': 'Full Stack Developer with expertise in both frontend and backend technologies',
     'mern': 'MERN Stack Developer (MongoDB, Express, React, Node.js)',
     'devops': 'DevOps Engineer specializing in CI/CD, cloud infrastructure, and automation',
+    'seo': 'SEO Specialist focusing on search engine optimization and digital marketing',
+    'mobile development': 'Mobile Developer specializing in iOS and Android app development',
+    'data science': 'Data Scientist working with data analysis, machine learning, and analytics',
+    'machine learning': 'Machine Learning Engineer specializing in AI and ML algorithms',
+    'cloud computing': 'Cloud Engineer specializing in cloud platforms and services',
+    'cybersecurity': 'Cybersecurity Specialist focusing on information security',
     'software-engineer': 'Software Engineer with broad technical knowledge',
     'senior-software-engineer': 'Senior Software Engineer with leadership and architecture experience',
   };
+
+  // Get role description - use domain description if available, otherwise use mapping
+  const roleDescription = domainDesc 
+    ? `${domain} Specialist${domainDesc ? `: ${domainDesc}` : ''}`
+    : (roleDescriptions[domain.toLowerCase()] || roleDescriptions[role.toLowerCase()] || `Technical role in ${domain}`);
 
   const difficultyGuidelines: Record<string, string> = {
     beginner: `For BEGINNER level candidates, focus on:
@@ -65,42 +173,69 @@ export function generateInterviewPrompt(context: InterviewContext): string {
 - Industry trends and future technologies`,
   };
 
-  const roleDescription = roleDescriptions[role.toLowerCase()] || `Technical role in ${role}`;
   const difficultyGuideline = difficultyGuidelines[difficulty] || difficultyGuidelines.intermediate;
 
   return `You are an expert technical interviewer conducting a professional ${difficulty} level interview for a ${roleDescription} position.
 
+CANDIDATE PROFILE:
+- Domain: ${domain}
+${domainDesc ? `- Domain Description: ${domainDesc}` : ''}
+- Experience Level: ${difficulty}
+${userName ? `- Name: ${userName}` : ''}
+
 ${difficultyGuideline}
 
-INTERVIEW GUIDELINES:
-1. Start with a warm, professional greeting and introduce yourself
-2. Ask 5-8 thoughtful questions throughout the interview
-3. Listen carefully to the candidate's responses and ask follow-up questions when appropriate
-4. Provide constructive feedback after key responses
-5. Test both technical knowledge and problem-solving skills
-6. Keep the conversation natural and engaging
-7. End the interview by asking if the candidate has any questions
-8. Provide a brief summary of strengths and areas for improvement
+CRITICAL INTERVIEW INSTRUCTIONS:
+1. **YOU MUST SPEAK FIRST** - When the call starts, you will automatically greet the user. The greeting has been set, but you should immediately follow up with your first question.
+
+2. **Ask questions immediately** - As soon as you greet the user, ask your first question. Do not wait for the user to speak first. You are the interviewer - you lead the conversation.
+
+3. **Active questioning** - You must actively ask questions throughout the interview. Don't wait for prompts or user initiation.
+
+3. **Generate and ask 5-8 specific questions** related to:
+   - ${domain} fundamentals and core concepts
+   - Real-world scenarios in ${domain}
+   - Problem-solving specific to ${domain}
+   - Technologies and tools used in ${domain}
+   - Best practices in ${domain}
+   ${difficulty !== 'beginner' ? `- System design and architecture (for ${domain})` : ''}
+   ${difficulty === 'expert' || difficulty === 'advanced' ? `- Leadership and mentoring in ${domain}` : ''}
+
+4. **Question generation strategy:**
+   - Generate questions dynamically based on the conversation
+   - Ask follow-up questions based on the candidate's answers
+   - Vary question types: conceptual, practical, problem-solving, scenario-based
+   - Make questions appropriate for ${difficulty} level
+   - Focus specifically on ${domain} knowledge and skills
+
+5. **After each answer:**
+   - Provide brief, constructive feedback
+   - Ask a follow-up question or move to the next topic
+   - Keep the conversation flowing naturally
+
+6. **End the interview:**
+   - Ask if the candidate has any questions
+   - Provide a brief summary of their performance
+   - Thank them for their time
 
 CONVERSATION STYLE:
-- Be professional but friendly
+- Be professional but friendly and encouraging
 - Speak clearly and at a moderate pace
-- Allow the candidate time to think before answering
-- Provide encouragement and positive reinforcement
-- Be specific in your feedback
-- Use technical terminology appropriate for the ${difficulty} level
+- Allow the candidate 2-3 seconds to think before answering
+- Provide positive reinforcement: "That's a good point", "I see", "Interesting approach"
+- Be specific in feedback: "Good explanation of X, let me ask you about Y"
+- Use technical terminology appropriate for ${difficulty} level in ${domain}
 
-QUESTION TOPICS TO COVER:
-1. Technical fundamentals relevant to ${role}
-2. Problem-solving and coding scenarios
-3. Experience with specific technologies
-4. System design (for intermediate and above)
-5. Best practices and industry standards
-6. Soft skills and teamwork (briefly)
+EXAMPLE QUESTIONS FOR ${domain} (${difficulty} level):
+${generateExampleQuestions(domain, difficulty)}
 
-${userName ? `The candidate's name is ${userName}.` : ''}
-
-Remember: This is a practice interview to help the candidate improve. Be supportive while still maintaining professional standards.`;
+REMEMBER:
+- You are conducting a REAL interview - ask questions actively
+- Generate questions on the fly based on ${domain} and ${difficulty} level
+- Don't just respond - LEAD the conversation with questions
+- This is a practice interview to help the candidate improve
+- Be supportive while maintaining professional standards
+- Focus specifically on ${domain} knowledge and skills`;
 }
 
 /**

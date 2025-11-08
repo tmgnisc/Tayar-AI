@@ -153,17 +153,37 @@ router.post('/interviews', async (req: AuthRequest, res) => {
     }
 
     try {
-      // Get user info for interview
+      // Get user info including domain and level for interview
       const [users]: any = await connection.query(
-        'SELECT name, email FROM users WHERE id = ?',
+        `SELECT u.name, u.email, u.domain_id, u.level,
+         d.name as domain_name, d.description as domain_description
+         FROM users u
+         LEFT JOIN domains d ON u.domain_id = d.id
+         WHERE u.id = ?`,
         [userId]
       );
       const user = users[0];
 
+      // Use user's domain and level if available, otherwise use provided role/difficulty
+      const interviewRole = user.domain_name || role;
+      
+      // Map user level to interview difficulty
+      let interviewDifficulty = difficulty;
+      if (user.level) {
+        const levelMap: Record<string, string> = {
+          'beginner': 'beginner',
+          'intermediate': 'intermediate',
+          'senior': 'advanced',
+          'principal': 'expert',
+          'lead': 'expert',
+        };
+        interviewDifficulty = levelMap[user.level] || difficulty;
+      }
+
       // Create interview record
       const [result]: any = await connection.query(
         'INSERT INTO interviews (user_id, role, difficulty, language) VALUES (?, ?, ?, ?)',
-        [userId, role, difficulty, language]
+        [userId, interviewRole, interviewDifficulty, language]
       );
 
       const interviewId = result.insertId;
@@ -175,21 +195,23 @@ router.post('/interviews', async (req: AuthRequest, res) => {
       try {
         const { createVapiAssistant, createVapiWebCall } = await import('../services/vapi');
         
-        // First create the assistant
+        // First create the assistant with user's domain and level
         vapiAssistantId = await createVapiAssistant({
           interviewId,
           userId,
-          role,
-          difficulty,
+          role: interviewRole,
+          difficulty: interviewDifficulty,
           userName: user.name,
+          domainName: user.domain_name,
+          domainDescription: user.domain_description,
         });
 
         // Then create the call with the assistant
         const vapiCall = await createVapiWebCall({
           interviewId,
           userId,
-          role,
-          difficulty,
+          role: interviewRole,
+          difficulty: interviewDifficulty,
           userName: user.name,
           assistantId: vapiAssistantId,
         });
