@@ -35,6 +35,8 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
   try {
     const assistantName = `Interview Assistant - ${config.role} (${config.difficulty})`;
     
+    console.log(`[Vapi] Generating interview prompt for ${config.role} (${config.difficulty})...`);
+    
     // Generate interview prompt using Gemini service with domain information
     const interviewPrompt = generateInterviewPrompt({
       role: config.role,
@@ -44,6 +46,9 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
       domainName: config.domainName,
       domainDescription: config.domainDescription,
     });
+    
+    console.log(`[Vapi] Prompt generated (length: ${interviewPrompt.length} characters)`);
+    console.log(`[Vapi] Creating assistant: ${assistantName}...`);
     
     // Create assistant with Gemini integration
     const assistantConfig = {
@@ -62,24 +67,22 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
         provider: '11labs',
         voiceId: '21m00Tcm4TlvDq8ikWAM', // Rachel voice - professional and clear
       },
-      // First message that will be spoken immediately when call starts
-      firstMessage: `Hello${config.userName ? ` ${config.userName}` : ''}! Welcome to your technical interview practice session. I'm your AI interviewer, and I'll be conducting your interview today for the ${config.role} position at ${config.difficulty} level. Let's begin! First question: Can you tell me about your experience with ${config.role}? What technologies and tools are you most familiar with in this domain?`,
+      // First message - This will be automatically spoken by Vapi when the call starts
+      // Vapi will speak this greeting immediately upon call connection
+      firstMessage: `Hello${config.userName ? ` ${config.userName}` : ''}! Welcome to your technical interview practice session. I'm your AI interviewer, and I'll be conducting your interview today for the ${config.role} position at ${config.difficulty} level. Let's begin! My first question for you is: Can you tell me about your experience with ${config.role}? What technologies and tools are you most familiar with in this domain?`,
       
-      // Ensure the assistant speaks first (no waiting for user input)
-      responseDelay: 0, // Start speaking immediately
+      // Ensure the assistant speaks first
+      firstMessageMode: 'assistant-speaks-first',
       
       // Webhooks are optional - only set if BACKEND_URL is configured and accessible
       ...(BACKEND_URL && BACKEND_URL !== 'http://localhost:3000' ? {
         serverUrl: `${BACKEND_URL}/api/webhooks/vapi`,
         serverUrlSecret: process.env.VAPI_WEBHOOK_SECRET || 'your-webhook-secret',
       } : {}),
+      
+      // Enable recording and transcription
       recordingEnabled: true,
       recordingTranscriptionEnabled: true,
-      
-      // Additional settings to ensure smooth voice interaction
-      silenceTimeoutSeconds: 5, // Wait 5 seconds of silence before speaking
-      endCallFunctionEnabled: false, // Don't allow assistant to end call
-      backgroundSound: null, // No background sound
     };
 
     const response = await axios.post(
@@ -90,13 +93,27 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
           'Authorization': `Bearer ${VAPI_API_KEY}`,
           'Content-Type': 'application/json',
         },
+        timeout: 30000, // 30 second timeout
       }
     );
 
-    return response.data.id;
+    const assistantId = response.data.id;
+    console.log(`[Vapi] Assistant created successfully: ${assistantId}`);
+    return assistantId;
   } catch (error: any) {
-    console.error('Error creating Vapi assistant:', error.response?.data || error.message);
-    throw new Error(`Failed to create Vapi assistant: ${error.message}`);
+    const errorMessage = error.response?.data 
+      ? JSON.stringify(error.response.data) 
+      : error.message;
+    console.error('[Vapi] Error creating assistant:', errorMessage);
+    console.error('[Vapi] Error status:', error.response?.status);
+    console.error('[Vapi] Error headers:', error.response?.headers);
+    
+    // Check if it's an authentication error
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error(`Vapi authentication failed. Please check your VAPI_API_KEY. Status: ${error.response.status}`);
+    }
+    
+    throw new Error(`Failed to create Vapi assistant: ${errorMessage}`);
   }
 }
 
@@ -168,6 +185,8 @@ export async function createVapiWebCall(config: VapiCallConfig): Promise<VapiCal
       },
     };
 
+    console.log(`[Vapi] Creating web call with assistant ${assistantId}...`);
+    
     const response = await axios.post(
       `${VAPI_BASE_URL}/call`,
       callConfig,
@@ -176,8 +195,11 @@ export async function createVapiWebCall(config: VapiCallConfig): Promise<VapiCal
           'Authorization': `Bearer ${VAPI_API_KEY}`,
           'Content-Type': 'application/json',
         },
+        timeout: 30000, // 30 second timeout
       }
     );
+
+    console.log(`[Vapi] Web call created successfully:`, response.data.id);
 
     return {
       id: response.data.id,
@@ -185,8 +207,23 @@ export async function createVapiWebCall(config: VapiCallConfig): Promise<VapiCal
       recordingUrl: response.data.recordingUrl,
     };
   } catch (error: any) {
-    console.error('Error creating Vapi web call:', error.response?.data || error.message);
-    throw new Error(`Failed to create Vapi web call: ${error.message}`);
+    const errorMessage = error.response?.data 
+      ? JSON.stringify(error.response.data) 
+      : error.message;
+    console.error('[Vapi] Error creating web call:', errorMessage);
+    console.error('[Vapi] Error status:', error.response?.status);
+    
+    // Check if it's an authentication error
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error(`Vapi authentication failed. Please check your VAPI_API_KEY. Status: ${error.response.status}`);
+    }
+    
+    // Check if it's a timeout
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      throw new Error('Vapi API request timed out. Please check your internet connection and try again.');
+    }
+    
+    throw new Error(`Failed to create Vapi web call: ${errorMessage}`);
   }
 }
 

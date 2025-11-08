@@ -188,45 +188,70 @@ router.post('/interviews', async (req: AuthRequest, res) => {
 
       const interviewId = result.insertId;
 
-      // Initialize Vapi call for web-based interview
-      let vapiCallId = null;
-      let vapiAssistantId = null;
+      // Initialize Vapi call for web-based interview (with timeout to prevent hanging)
+      let vapiCallId: string | null = null;
+      let vapiAssistantId: string | null = null;
 
-      try {
-        const { createVapiAssistant, createVapiWebCall } = await import('../services/vapi');
-        
-        // First create the assistant with user's domain and level
-        vapiAssistantId = await createVapiAssistant({
-          interviewId,
-          userId,
-          role: interviewRole,
-          difficulty: interviewDifficulty,
-          userName: user.name,
-          domainName: user.domain_name,
-          domainDescription: user.domain_description,
-        });
+      // Create Vapi call with timeout to prevent the endpoint from hanging
+      const vapiResult = await Promise.race([
+        (async () => {
+          try {
+            const { createVapiAssistant, createVapiWebCall } = await import('../services/vapi');
+            
+            console.log(`[Vapi] Creating assistant for interview ${interviewId}...`);
+            
+            // First create the assistant with user's domain and level
+            const assistantId = await createVapiAssistant({
+              interviewId,
+              userId,
+              role: interviewRole,
+              difficulty: interviewDifficulty,
+              userName: user.name,
+              domainName: user.domain_name,
+              domainDescription: user.domain_description,
+            });
 
-        // Then create the call with the assistant
-        const vapiCall = await createVapiWebCall({
-          interviewId,
-          userId,
-          role: interviewRole,
-          difficulty: interviewDifficulty,
-          userName: user.name,
-          assistantId: vapiAssistantId,
-        });
+            console.log(`[Vapi] Assistant created: ${assistantId}`);
 
-        vapiCallId = vapiCall.id;
+            // Then create the call with the assistant
+            const vapiCall = await createVapiWebCall({
+              interviewId,
+              userId,
+              role: interviewRole,
+              difficulty: interviewDifficulty,
+              userName: user.name,
+              assistantId: assistantId,
+            });
 
-        // Update interview with Vapi call ID and assistant ID
-        await connection.query(
-          'UPDATE interviews SET vapi_call_id = ?, vapi_assistant_id = ? WHERE id = ?',
-          [vapiCallId, vapiAssistantId, interviewId]
-        );
-      } catch (vapiError: any) {
-        console.error('Vapi initialization error:', vapiError);
-        // Continue even if Vapi fails - interview can still be created
-      }
+            console.log(`[Vapi] Call created: ${vapiCall.id}`);
+
+            // Update interview with Vapi call ID and assistant ID
+            await connection.query(
+              'UPDATE interviews SET vapi_call_id = ?, vapi_assistant_id = ? WHERE id = ?',
+              [vapiCall.id, assistantId, interviewId]
+            );
+
+            return { vapiCallId: vapiCall.id, vapiAssistantId: assistantId };
+          } catch (vapiError: any) {
+            console.error('[Vapi] Initialization error:', vapiError.message || vapiError);
+            console.error('[Vapi] Error details:', vapiError.response?.data || vapiError.stack);
+            throw vapiError;
+          }
+        })(),
+        // Timeout after 25 seconds (before the 30 second axios timeout)
+        new Promise<{ vapiCallId: null; vapiAssistantId: null }>((resolve) => 
+          setTimeout(() => {
+            console.warn('[Vapi] Initialization timeout after 25 seconds - continuing without Vapi');
+            resolve({ vapiCallId: null, vapiAssistantId: null });
+          }, 25000)
+        )
+      ]).catch((error: any) => {
+        console.error('[Vapi] Failed to initialize:', error.message);
+        return { vapiCallId: null, vapiAssistantId: null };
+      });
+
+      vapiCallId = vapiResult.vapiCallId;
+      vapiAssistantId = vapiResult.vapiAssistantId;
 
       // Log activity
       await connection.query(
@@ -268,8 +293,15 @@ router.get('/interviews/:id/vapi-info', async (req: AuthRequest, res) => {
 
       const interview = interviews[0];
 
+      // If Vapi call is not initialized, return a response indicating that
+      // The frontend can handle this gracefully
       if (!interview.vapi_call_id) {
-        return res.status(400).json({ message: 'Vapi call not initialized' });
+        return res.status(200).json({
+          callId: null,
+          assistantId: null,
+          publicKey: process.env.VAPI_API_KEY, // Still return API key so frontend can try to create call
+          message: 'Vapi call not initialized - may still be in progress',
+        });
       }
 
       res.json({
@@ -283,6 +315,106 @@ router.get('/interviews/:id/vapi-info', async (req: AuthRequest, res) => {
     }
   } catch (error: any) {
     console.error('Get Vapi info error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Retry/Initialize Vapi call for an existing interview
+router.post('/interviews/:id/initialize-vapi', async (req: AuthRequest, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const userId = req.userId!;
+    const interviewId = parseInt(req.params.id);
+
+    try {
+      // Get interview details
+      const [interviews]: any = await connection.query(
+        `SELECT i.*, u.name as user_name, u.email, d.name as domain_name, d.description as domain_description
+         FROM interviews i
+         JOIN users u ON i.user_id = u.id
+         LEFT JOIN domains d ON u.domain_id = d.id
+         WHERE i.id = ? AND i.user_id = ?`,
+        [interviewId, userId]
+      );
+
+      if (interviews.length === 0) {
+        return res.status(404).json({ message: 'Interview not found' });
+      }
+
+      const interview = interviews[0];
+
+      // Check if Vapi call already exists
+      if (interview.vapi_call_id) {
+        return res.json({
+          message: 'Vapi call already initialized',
+          callId: interview.vapi_call_id,
+          assistantId: interview.vapi_assistant_id,
+        });
+      }
+
+      // Initialize Vapi call
+      let vapiCallId: string | null = null;
+      let vapiAssistantId: string | null = null;
+
+      try {
+        const { createVapiAssistant, createVapiWebCall } = await import('../services/vapi');
+        
+        console.log(`[Vapi] Retrying initialization for interview ${interviewId}...`);
+        
+        // Create assistant
+        const assistantId = await createVapiAssistant({
+          interviewId,
+          userId,
+          role: interview.role,
+          difficulty: interview.difficulty,
+          userName: interview.user_name,
+          domainName: interview.domain_name,
+          domainDescription: interview.domain_description,
+        });
+
+        console.log(`[Vapi] Assistant created: ${assistantId}`);
+
+        // Create call
+        const vapiCall = await createVapiWebCall({
+          interviewId,
+          userId,
+          role: interview.role,
+          difficulty: interview.difficulty,
+          userName: interview.user_name,
+          assistantId: assistantId,
+        });
+
+        vapiCallId = vapiCall.id;
+        vapiAssistantId = assistantId;
+
+        console.log(`[Vapi] Call created: ${vapiCallId}`);
+
+        // Update interview with Vapi call ID and assistant ID
+        await connection.query(
+          'UPDATE interviews SET vapi_call_id = ?, vapi_assistant_id = ? WHERE id = ?',
+          [vapiCallId, vapiAssistantId, interviewId]
+        );
+
+        res.json({
+          message: 'Vapi call initialized successfully',
+          callId: vapiCallId,
+          assistantId: vapiAssistantId,
+        });
+      } catch (vapiError: any) {
+        console.error('[Vapi] Retry initialization error:', vapiError.message || vapiError);
+        console.error('[Vapi] Error details:', vapiError.response?.data || vapiError.stack);
+        
+        res.status(500).json({
+          message: 'Failed to initialize Vapi call',
+          error: vapiError.message,
+          details: vapiError.response?.data || null,
+        });
+      }
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Initialize Vapi error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
