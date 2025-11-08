@@ -227,8 +227,8 @@ router.post('/interviews', async (req: AuthRequest, res) => {
   }
 });
 
-// Get Vapi call token for frontend
-router.get('/interviews/:id/vapi-token', async (req: AuthRequest, res) => {
+// Get Vapi call info for frontend
+router.get('/interviews/:id/vapi-info', async (req: AuthRequest, res) => {
   try {
     const connection = await pool.getConnection();
     const userId = req.userId!;
@@ -236,7 +236,7 @@ router.get('/interviews/:id/vapi-token', async (req: AuthRequest, res) => {
 
     try {
       const [interviews]: any = await connection.query(
-        'SELECT vapi_call_id FROM interviews WHERE id = ? AND user_id = ?',
+        'SELECT vapi_call_id, vapi_assistant_id, role, difficulty FROM interviews WHERE id = ? AND user_id = ?',
         [interviewId, userId]
       );
 
@@ -250,17 +250,91 @@ router.get('/interviews/:id/vapi-token', async (req: AuthRequest, res) => {
         return res.status(400).json({ message: 'Vapi call not initialized' });
       }
 
-      // In a real implementation, you would generate a token for the frontend
-      // For now, return the call ID
       res.json({
         callId: interview.vapi_call_id,
-        // In production, you might want to generate a secure token here
+        assistantId: interview.vapi_assistant_id,
+        // Public API key can be used client-side
+        publicKey: process.env.VAPI_API_KEY,
       });
     } finally {
       connection.release();
     }
   } catch (error: any) {
-    console.error('Get Vapi token error:', error);
+    console.error('Get Vapi info error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Save transcript manually (for client-side integration without webhooks)
+router.post('/interviews/:id/transcript', async (req: AuthRequest, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const userId = req.userId!;
+    const interviewId = req.params.id;
+    const { transcript, recordingUrl, duration } = req.body;
+
+    try {
+      // Verify interview belongs to user
+      const [interviews]: any = await connection.query(
+        'SELECT * FROM interviews WHERE id = ? AND user_id = ?',
+        [interviewId, userId]
+      );
+
+      if (interviews.length === 0) {
+        return res.status(404).json({ message: 'Interview not found' });
+      }
+
+      const interview = interviews[0];
+
+      // Update interview with transcript
+      await connection.query(
+        `UPDATE interviews 
+         SET conversation_transcript = ?,
+             vapi_recording_url = ?,
+             duration_minutes = ?,
+             completed_at = NOW(),
+             status = 'completed'
+         WHERE id = ?`,
+        [transcript || null, recordingUrl || null, duration || null, interviewId]
+      );
+
+      // Generate feedback using Gemini if transcript is available
+      if (transcript) {
+        try {
+          const { generateInterviewFeedback } = await import('../services/gemini');
+          const feedback = await generateInterviewFeedback(transcript, {
+            role: interview.role,
+            difficulty: interview.difficulty,
+            language: interview.language,
+          });
+
+          // Update overall score
+          await connection.query(
+            'UPDATE interviews SET overall_score = ? WHERE id = ?',
+            [feedback.overallScore, interviewId]
+          );
+
+          // Save feedback categories
+          for (const item of feedback.feedback) {
+            await connection.query(
+              `INSERT INTO interview_feedback (interview_id, category, score, feedback)
+               VALUES (?, ?, ?, ?)`,
+              [interviewId, item.category, item.score, item.comment]
+            );
+          }
+
+          console.log('✅ Interview feedback generated for interview:', interviewId);
+        } catch (error: any) {
+          console.error('Error generating feedback:', error);
+        }
+      }
+
+      res.json({ message: 'Transcript saved successfully' });
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Save transcript error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
