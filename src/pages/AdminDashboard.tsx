@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, TrendingUp, DollarSign, Play, Search, Eye, Settings, Activity, Calendar } from "lucide-react";
+import { Users, TrendingUp, DollarSign, Play, Search, Eye, Settings, Activity, Calendar, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/config/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface OverviewStats {
   total_users: number;
@@ -48,20 +51,18 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const token = localStorage.getItem('token');
+  const { token } = useAuth();
 
   useEffect(() => {
-    fetchDashboardData();
-    fetchUsers();
-  }, [currentPage]);
+    if (token) {
+      fetchDashboardData();
+      fetchUsers();
+    }
+  }, [currentPage, token]);
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/admin/dashboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const response = await apiRequest('api/admin/dashboard', {}, token);
 
       if (response.ok) {
         const data = await response.json();
@@ -84,11 +85,7 @@ export default function AdminDashboard() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/api/admin/users?page=${currentPage}&limit=20&search=${searchTerm}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const response = await apiRequest(`api/admin/users?page=${currentPage}&limit=20&search=${searchTerm}`, {}, token);
 
       if (response.ok) {
         const data = await response.json();
@@ -178,8 +175,18 @@ export default function AdminDashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold mb-2">Admin Dashboard 👑</h1>
-          <p className="text-muted-foreground">Monitor and manage your Tayar.ai platform</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">Admin Dashboard 👑</h1>
+              <p className="text-muted-foreground">Monitor and manage your Tayar.ai platform</p>
+            </div>
+            <Link to="/admin/domains">
+              <Button className="bg-gradient-to-r from-primary to-accent hover:opacity-90">
+                <Briefcase className="w-4 h-4 mr-2" />
+                Manage Domains
+              </Button>
+            </Link>
+          </div>
         </motion.div>
 
         {/* Stats Grid */}

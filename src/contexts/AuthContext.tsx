@@ -1,10 +1,20 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { apiRequest, apiUrl } from '@/config/api';
+
+interface Domain {
+  id: number;
+  name: string;
+  description?: string;
+}
 
 interface User {
   id: number;
   name: string;
   email: string;
   role: string;
+  domain_id?: number;
+  domain?: Domain;
+  level?: string;
   subscription_type: string;
   subscription_status: string;
 }
@@ -16,6 +26,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   register: (name: string, email: string, password: string) => Promise<void>;
+  updateUser: (userData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,44 +38,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Load user from localStorage on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+    const initializeAuth = async () => {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
       
-      // Verify token is still valid
-      verifyToken(storedToken);
-    } else {
-      setLoading(false);
-    }
+      if (storedToken && storedUser) {
+        try {
+          // Set token and user immediately to prevent flickering
+          setToken(storedToken);
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          
+          // Verify token in the background
+          await verifyToken(storedToken);
+        } catch (error) {
+          console.error('Error parsing stored user:', error);
+          // If we can't parse user, clear everything
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setToken(null);
+          setUser(null);
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
   }, []);
 
   const verifyToken = async (tokenToVerify: string) => {
     try {
-      const response = await fetch('http://localhost:3000/api/auth/me', {
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(apiUrl('api/auth/me'), {
         headers: {
           'Authorization': `Bearer ${tokenToVerify}`,
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
+        // Update user with fresh data from server
         setUser(data.user);
-      } else {
-        // Token invalid, clear storage
+        // Update localStorage with fresh user data
+        localStorage.setItem('user', JSON.stringify(data.user));
+        // Ensure token is set
+        setToken(tokenToVerify);
+        localStorage.setItem('token', tokenToVerify);
+      } else if (response.status === 401 || response.status === 403) {
+        // Only clear on authentication errors (token expired/invalid)
+        console.log('Token expired or invalid, clearing session');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setToken(null);
         setUser(null);
+      } else {
+        // For other errors (500, network, etc.), keep the session
+        // The user data is already loaded from localStorage
+        console.warn('Token verification failed with status:', response.status, '- keeping session');
+        // Don't clear - keep the user logged in with cached data
       }
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setToken(null);
-      setUser(null);
+    } catch (error: any) {
+      // Network error or timeout - don't clear session, user might be offline
+      // Keep the stored user data that was already loaded from localStorage
+      if (error.name === 'AbortError') {
+        console.warn('Token verification timed out (keeping session - user may be offline)');
+      } else {
+        console.warn('Token verification network error (keeping session - user may be offline):', error.message);
+      }
+      // Don't clear the session on network errors - user stays logged in with cached data
+      // The user and token are already set from localStorage, so we just continue
     } finally {
       setLoading(false);
     }
@@ -72,11 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:3000/api/auth/login', {
+      const response = await apiRequest('api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ email, password }),
       });
 
@@ -87,6 +134,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('user', JSON.stringify(data.user));
         setToken(data.token);
         setUser(data.user);
+        // Ensure loading is false after successful login
+        setLoading(false);
       } else {
         throw new Error(data.message || 'Login failed');
       }
@@ -97,11 +146,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:3000/api/auth/register', {
+      const response = await apiRequest('api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ name, email, password }),
       });
 
@@ -125,8 +171,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const updateUser = (userData: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, register, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

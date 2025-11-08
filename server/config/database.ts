@@ -33,7 +33,9 @@ export async function initializeDatabase() {
     await createTables();
     console.log('✅ Tables created/verified');
     
-    // Seed initial admin user
+    // Seed initial data
+    await seedDomains();
+    console.log('✅ Domains seeded');
     await seedAdminUser();
     console.log('✅ Initial data seeded');
     
@@ -48,6 +50,20 @@ async function createTables() {
   const connection = await pool.getConnection();
   
   try {
+    // Create domains table first (users references it)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS domains (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        description TEXT,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_name (name),
+        INDEX idx_is_active (is_active)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     await connection.query(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -55,6 +71,8 @@ async function createTables() {
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         role ENUM('user', 'admin') DEFAULT 'user',
+        domain_id INT NULL,
+        level ENUM('beginner', 'intermediate', 'senior', 'principal', 'lead') NULL,
         subscription_type ENUM('free', 'pro', 'enterprise') DEFAULT 'free',
         subscription_status ENUM('active', 'cancelled', 'expired') DEFAULT 'active',
         subscription_start_date DATE,
@@ -63,7 +81,9 @@ async function createTables() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         last_login TIMESTAMP NULL,
         INDEX idx_email (email),
-        INDEX idx_role (role)
+        INDEX idx_role (role),
+        INDEX idx_domain_id (domain_id),
+        FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE SET NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
@@ -135,6 +155,43 @@ async function createTables() {
         INDEX idx_status (status)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+  } finally {
+    connection.release();
+  }
+}
+
+async function seedDomains() {
+  const connection = await pool.getConnection();
+  
+  try {
+    const domains = [
+      { name: 'Frontend', description: 'Frontend development technologies' },
+      { name: 'Backend', description: 'Backend development technologies' },
+      { name: 'Full Stack', description: 'Full stack development' },
+      { name: 'MERN', description: 'MongoDB, Express, React, Node.js' },
+      { name: 'MEAN', description: 'MongoDB, Express, Angular, Node.js' },
+      { name: 'DevOps', description: 'DevOps and infrastructure' },
+      { name: 'SEO', description: 'Search Engine Optimization' },
+      { name: 'Mobile Development', description: 'iOS and Android development' },
+      { name: 'Data Science', description: 'Data science and analytics' },
+      { name: 'Machine Learning', description: 'Machine learning and AI' },
+      { name: 'Cloud Computing', description: 'Cloud platforms and services' },
+      { name: 'Cybersecurity', description: 'Information security' },
+    ];
+
+    for (const domain of domains) {
+      const [existing]: any = await connection.query(
+        'SELECT * FROM domains WHERE name = ?',
+        [domain.name]
+      );
+
+      if (existing.length === 0) {
+        await connection.query(
+          'INSERT INTO domains (name, description) VALUES (?, ?)',
+          [domain.name, domain.description]
+        );
+      }
+    }
   } finally {
     connection.release();
   }

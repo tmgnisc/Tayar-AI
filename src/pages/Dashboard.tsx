@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Target, TrendingUp, Award, Clock, Play, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/config/api";
 
 export default function Dashboard() {
   const { user, token } = useAuth();
@@ -28,11 +29,7 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/user/dashboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const response = await apiRequest('api/user/dashboard', {}, token);
 
       if (response.ok) {
         const data = await response.json();

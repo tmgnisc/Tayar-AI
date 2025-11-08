@@ -13,7 +13,9 @@ import Contact from "./pages/Contact";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminDomains from "./pages/AdminDomains";
 import InterviewSetup from "./pages/InterviewSetup";
 import InterviewSession from "./pages/InterviewSession";
 import InterviewResult from "./pages/InterviewResult";
@@ -37,7 +39,9 @@ const App = () => (
           <Route path="/auth/signin" element={<SignIn />} />
           <Route path="/auth/signup" element={<SignUp />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/domains" element={<ProtectedRoute requireAdmin><AdminDomains /></ProtectedRoute>} />
           <Route path="/interview/setup" element={<ProtectedRoute><InterviewSetup /></ProtectedRoute>} />
           <Route path="/interview/session" element={<ProtectedRoute><InterviewSession /></ProtectedRoute>} />
           <Route path="/interview/result" element={<ProtectedRoute><InterviewResult /></ProtectedRoute>} />

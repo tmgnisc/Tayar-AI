@@ -93,10 +93,17 @@ export const Navbar = ({ showAuth = true, showProfile = false }: NavbarProps) =>
                   {user.role === 'admin' ? 'Admin Dashboard' : 'My Dashboard'}
                 </Link>
               </DropdownMenuItem>
-              {user.role !== 'admin' && (
+              {user.role === 'admin' ? (
+                <DropdownMenuItem asChild>
+                  <Link to="/admin/domains">Domain Management</Link>
+                </DropdownMenuItem>
+              ) : (
                 <>
                   <DropdownMenuItem asChild>
                     <Link to="/interview/setup">Start Interview</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile">Edit Profile</Link>
                   </DropdownMenuItem>
                 </>
               )}

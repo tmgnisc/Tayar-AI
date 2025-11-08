@@ -99,7 +99,7 @@ router.post('/login', async (req, res) => {
         [user.id, 'user_login', `User logged in: ${email}`, req.ip]
       );
 
-      // Generate JWT
+      // Generate JWT with longer expiration (30 days)
       const token = jwt.sign(
         { 
           userId: user.id, 
@@ -108,8 +108,18 @@ router.post('/login', async (req, res) => {
           name: user.name
         },
         JWT_SECRET,
-        { expiresIn: '7d' }
+        { expiresIn: '30d' }
       );
+
+      // Get domain info if user has one
+      let domain = null;
+      if (user.domain_id) {
+        const [domains]: any = await connection.query(
+          'SELECT * FROM domains WHERE id = ?',
+          [user.domain_id]
+        );
+        domain = domains[0] || null;
+      }
 
       res.json({
         message: 'Login successful',
@@ -119,6 +129,9 @@ router.post('/login', async (req, res) => {
           name: user.name,
           email: user.email,
           role: user.role,
+          domain_id: user.domain_id,
+          domain: domain,
+          level: user.level,
           subscription_type: user.subscription_type,
           subscription_status: user.subscription_status,
         },
@@ -139,7 +152,12 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
     
     try {
       const [users]: any = await connection.query(
-        'SELECT id, name, email, role, subscription_type, subscription_status, created_at, last_login FROM users WHERE id = ?',
+        `SELECT u.id, u.name, u.email, u.role, u.domain_id, u.level, 
+         u.subscription_type, u.subscription_status, u.created_at, u.last_login,
+         d.id as d_id, d.name as domain_name, d.description as domain_description
+         FROM users u
+         LEFT JOIN domains d ON u.domain_id = d.id
+         WHERE u.id = ?`,
         [req.userId]
       );
 
@@ -147,7 +165,26 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
         return res.status(404).json({ message: 'User not found' });
       }
 
-      res.json({ user: users[0] });
+      const user = users[0];
+      res.json({ 
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          domain_id: user.domain_id,
+          domain: user.domain_id ? {
+            id: user.domain_id,
+            name: user.domain_name,
+            description: user.domain_description,
+          } : null,
+          level: user.level,
+          subscription_type: user.subscription_type,
+          subscription_status: user.subscription_status,
+          created_at: user.created_at,
+          last_login: user.last_login,
+        }
+      });
     } finally {
       connection.release();
     }

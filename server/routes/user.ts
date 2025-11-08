@@ -177,5 +177,174 @@ router.post('/interviews', async (req: AuthRequest, res) => {
   }
 });
 
+// Get user profile
+router.get('/profile', async (req: AuthRequest, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const userId = req.userId!;
+
+    try {
+      const [users]: any = await connection.query(
+        `SELECT u.id, u.name, u.email, u.role, u.domain_id, u.level, 
+         u.subscription_type, u.subscription_status, u.created_at, u.last_login,
+         d.id as d_id, d.name as domain_name, d.description as domain_description
+         FROM users u
+         LEFT JOIN domains d ON u.domain_id = d.id
+         WHERE u.id = ?`,
+        [userId]
+      );
+
+      if (users.length === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      const user = users[0];
+      res.json({
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          domain_id: user.domain_id,
+          domain: user.domain_id ? {
+            id: user.d_id,
+            name: user.domain_name,
+            description: user.domain_description,
+          } : null,
+          level: user.level,
+          subscription_type: user.subscription_type,
+          subscription_status: user.subscription_status,
+          created_at: user.created_at,
+          last_login: user.last_login,
+        },
+      });
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get all available domains
+router.get('/domains', async (req: AuthRequest, res) => {
+  try {
+    const connection = await pool.getConnection();
+
+    try {
+      const [domains]: any = await connection.query(
+        'SELECT * FROM domains WHERE is_active = TRUE ORDER BY name ASC'
+      );
+
+      res.json({ domains });
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Get domains error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Update user profile
+router.patch('/profile', async (req: AuthRequest, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const userId = req.userId!;
+    const { name, domain_id, level } = req.body;
+
+    try {
+      // Build update query dynamically
+      const updates: string[] = [];
+      const values: any[] = [];
+
+      if (name !== undefined) {
+        updates.push('name = ?');
+        values.push(name);
+      }
+
+      if (domain_id !== undefined) {
+        // Validate domain exists if provided
+        if (domain_id !== null) {
+          const [domains]: any = await connection.query(
+            'SELECT * FROM domains WHERE id = ? AND is_active = TRUE',
+            [domain_id]
+          );
+          if (domains.length === 0) {
+            return res.status(400).json({ message: 'Invalid domain' });
+          }
+        }
+        updates.push('domain_id = ?');
+        values.push(domain_id);
+      }
+
+      if (level !== undefined) {
+        const validLevels = ['beginner', 'intermediate', 'senior', 'principal', 'lead'];
+        if (level !== null && !validLevels.includes(level)) {
+          return res.status(400).json({ message: 'Invalid level' });
+        }
+        updates.push('level = ?');
+        values.push(level);
+      }
+
+      if (updates.length === 0) {
+        return res.status(400).json({ message: 'No fields to update' });
+      }
+
+      values.push(userId);
+
+      await connection.query(
+        `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+        values
+      );
+
+      // Log activity
+      await connection.query(
+        'INSERT INTO activity_logs (user_id, activity_type, description) VALUES (?, ?, ?)',
+        [userId, 'profile_updated', 'User updated their profile']
+      );
+
+      // Get updated user
+      const [users]: any = await connection.query(
+        `SELECT u.id, u.name, u.email, u.role, u.domain_id, u.level, 
+         u.subscription_type, u.subscription_status, u.created_at, u.last_login,
+         d.id as d_id, d.name as domain_name, d.description as domain_description
+         FROM users u
+         LEFT JOIN domains d ON u.domain_id = d.id
+         WHERE u.id = ?`,
+        [userId]
+      );
+
+      const user = users[0];
+      res.json({
+        message: 'Profile updated successfully',
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          domain_id: user.domain_id,
+          domain: user.domain_id ? {
+            id: user.d_id,
+            name: user.domain_name,
+            description: user.domain_description,
+          } : null,
+          level: user.level,
+          subscription_type: user.subscription_type,
+          subscription_status: user.subscription_status,
+          created_at: user.created_at,
+          last_login: user.last_login,
+        },
+      });
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 export default router;
 

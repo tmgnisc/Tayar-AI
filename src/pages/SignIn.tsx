@@ -34,6 +34,15 @@ export default function SignIn() {
         title: "Welcome back!",
         description: "Redirecting to your dashboard...",
       });
+      // Navigate after successful login
+      // The useEffect will handle navigation, but we can also navigate here
+      setTimeout(() => {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+        }
+      }, 100);
     } catch (error: any) {
       toast({
         title: "Login failed",

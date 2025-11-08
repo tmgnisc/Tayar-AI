@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Sparkles, Target, Globe, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/config/api";
 
 export default function InterviewSetup() {
   const [role, setRole] = useState("");
@@ -33,14 +34,10 @@ export default function InterviewSetup() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/user/interviews', {
+      const response = await apiRequest('api/user/interviews', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
         body: JSON.stringify({ role, difficulty, language }),
-      });
+      }, token);
 
       const data = await response.json();
 
