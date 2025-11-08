@@ -8,16 +8,65 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Target, Globe, TrendingUp } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function InterviewSetup() {
   const [role, setRole] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [language, setLanguage] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { token } = useAuth();
+  const { toast } = useToast();
 
-  const handleStart = () => {
-    if (role && difficulty && language) {
-      navigate("/interview/session");
+  const handleStart = async () => {
+    if (!role || !difficulty || !language) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all fields to start the interview",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:3000/api/user/interviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role, difficulty, language }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Interview started!",
+          description: "Good luck with your interview practice!",
+        });
+        // Navigate to session with interview ID
+        navigate(`/interview/session?interviewId=${data.interviewId}`);
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to start interview",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error starting interview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to server",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -134,15 +183,15 @@ export default function InterviewSetup() {
               >
                 <Button
                   onClick={handleStart}
-                  disabled={!role || !difficulty || !language}
+                  disabled={!role || !difficulty || !language || loading}
                   className="w-full h-14 text-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 disabled:opacity-50 rounded-2xl group"
                 >
                   <motion.span
-                    whileHover={{ scale: 1.05 }}
+                    whileHover={!loading ? { scale: 1.05 } : {}}
                     className="flex items-center gap-2"
                   >
-                    Start Interview
-                    <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                    {loading ? "Starting Interview..." : "Start Interview"}
+                    {!loading && <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />}
                   </motion.span>
                 </Button>
               </motion.div>

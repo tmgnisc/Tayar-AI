@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Mail, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SignUp() {
   const [name, setName] = useState("");
@@ -16,40 +17,28 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { register, user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: "Account created!",
-          description: "Welcome to Tayar.ai. Redirecting to login...",
-        });
-        setTimeout(() => navigate("/auth/signin"), 1500);
-      } else {
-        toast({
-          title: "Registration failed",
-          description: data.message || "Failed to create account",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
+      await register(name, email, password);
       toast({
-        title: "Error",
-        description: "Failed to connect to server",
+        title: "Account created!",
+        description: "Welcome to Tayar.ai!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Registration failed",
+        description: error.message || "Failed to create account",
         variant: "destructive",
       });
     } finally {

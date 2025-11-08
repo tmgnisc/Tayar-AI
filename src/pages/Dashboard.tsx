@@ -1,24 +1,79 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Target, TrendingUp, Award, Clock, Play, Calendar } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
-  const stats = [
-    { icon: Target, label: "Total Interviews", value: "12", color: "from-primary to-accent" },
-    { icon: TrendingUp, label: "Average Score", value: "8.4", color: "from-secondary to-primary" },
-    { icon: Award, label: "Achievements", value: "5", color: "from-accent to-secondary" },
-    { icon: Clock, label: "Practice Hours", value: "24", color: "from-primary to-secondary" },
+  const { user, token } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    total_interviews: 0,
+    avg_score: "0.0",
+    total_minutes: 0,
+    achievements: 0,
+  });
+  const [recentInterviews, setRecentInterviews] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (token && user) {
+      fetchDashboardData();
+    }
+  }, [token, user]);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/user/dashboard', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setStats({
+          total_interviews: data.stats.total_interviews || 0,
+          avg_score: data.stats.avg_score || "0.0",
+          total_minutes: data.stats.total_minutes || 0,
+          achievements: data.stats.achievements || 0,
+        });
+        setRecentInterviews(data.recent_interviews || []);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statsCards = [
+    { icon: Target, label: "Total Interviews", value: stats.total_interviews.toString(), color: "from-primary to-accent" },
+    { icon: TrendingUp, label: "Average Score", value: stats.avg_score, color: "from-secondary to-primary" },
+    { icon: Award, label: "Achievements", value: stats.achievements.toString(), color: "from-accent to-secondary" },
+    { icon: Clock, label: "Practice Hours", value: Math.round(stats.total_minutes / 60).toString(), color: "from-primary to-secondary" },
   ];
 
-  const recentInterviews = [
-    { id: 1, role: "Senior Software Engineer", date: "2025-01-15", score: 8.9, duration: "45 min" },
-    { id: 2, role: "Product Manager", date: "2025-01-12", score: 8.2, duration: "38 min" },
-    { id: 3, role: "Frontend Developer", date: "2025-01-10", score: 7.8, duration: "42 min" },
-    { id: 4, role: "Data Scientist", date: "2025-01-08", score: 8.5, duration: "50 min" },
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen gradient-mesh flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl font-bold mb-2">Loading...</div>
+          <div className="text-muted-foreground">Fetching your dashboard data</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen gradient-mesh">
@@ -30,13 +85,13 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold mb-2">Welcome back, John! 👋</h1>
+          <h1 className="text-4xl font-bold mb-2">Welcome back, {user?.name || 'User'}! 👋</h1>
           <p className="text-muted-foreground">Ready to ace your next interview?</p>
         </motion.div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, i) => (
+          {statsCards.map((stat, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
@@ -89,44 +144,55 @@ export default function Dashboard() {
               <CardTitle className="text-2xl">Recent Interviews</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentInterviews.map((interview, i) => (
-                  <motion.div
-                    key={interview.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.6 + i * 0.1 }}
-                    className="flex items-center justify-between p-4 rounded-xl bg-background/50 hover:bg-background/70 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                        <Target className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold group-hover:text-primary transition-colors">
-                          {interview.role}
-                        </h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {interview.date}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {interview.duration}
-                          </span>
+              {recentInterviews.length > 0 ? (
+                <div className="space-y-4">
+                  {recentInterviews.map((interview, i) => (
+                    <motion.div
+                      key={interview.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.6 + i * 0.1 }}
+                      className="flex items-center justify-between p-4 rounded-xl bg-background/50 hover:bg-background/70 transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                          <Target className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold group-hover:text-primary transition-colors">
+                            {interview.role}
+                          </h3>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              {interview.completed_at ? new Date(interview.completed_at).toLocaleDateString() : new Date(interview.started_at).toLocaleDateString()}
+                            </span>
+                            {interview.duration_minutes && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {interview.duration_minutes} min
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-primary">{interview.score}</div>
-                        <div className="text-xs text-muted-foreground">Score</div>
+                      <div className="flex items-center gap-4">
+                        {interview.overall_score && (
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-primary">{interview.overall_score}</div>
+                            <div className="text-xs text-muted-foreground">Score</div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Target className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No interviews yet. Start your first interview to see your progress here!</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>

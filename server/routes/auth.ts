@@ -31,10 +31,10 @@ router.post('/register', async (req, res) => {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Create user
+      // Create user with explicit role='user' (normal user, not admin)
       const [result]: any = await connection.query(
-        'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
-        [name, email, hashedPassword]
+        'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+        [name, email, hashedPassword, 'user']
       );
 
       const userId = result.insertId;
