@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -7,25 +7,116 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, Target, Globe, TrendingUp } from "lucide-react";
+import { Sparkles, Target, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/config/api";
 
+interface Domain {
+  id: number;
+  name: string;
+  description?: string;
+}
+
 export default function InterviewSetup() {
   const [role, setRole] = useState("");
   const [difficulty, setDifficulty] = useState("");
-  const [language, setLanguage] = useState("");
+  const [language] = useState("english"); // Fixed to English for now
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [domains, setDomains] = useState<Domain[]>([]);
+  const [userProfile, setUserProfile] = useState<{ domain?: Domain | null; level?: string | null } | null>(null);
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { toast } = useToast();
 
+  // Map user level to interview difficulty
+  const mapLevelToDifficulty = (level: string | undefined | null): string => {
+    if (!level) return "";
+    switch (level) {
+      case "beginner":
+        return "beginner";
+      case "intermediate":
+        return "intermediate";
+      case "senior":
+        return "advanced";
+      case "principal":
+      case "lead":
+        return "expert";
+      default:
+        return "";
+    }
+  };
+
+  // Load user profile and domains on mount
+  useEffect(() => {
+    if (token && user) {
+      loadInitialData();
+    } else {
+      setPageLoading(false);
+    }
+  }, [token, user]);
+
+  const loadInitialData = async () => {
+    try {
+      // Fetch both profile and domains in parallel
+      const [profileResponse, domainsResponse] = await Promise.all([
+        apiRequest('api/user/profile', {}, token),
+        apiRequest('api/user/domains', {}, token),
+      ]);
+
+      // Process domains first
+      let domainsList: Domain[] = [];
+      if (domainsResponse.ok) {
+        const domainsData = await domainsResponse.json();
+        domainsList = domainsData.domains || [];
+        setDomains(domainsList);
+      }
+
+      // Process profile and auto-fill fields
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        const profile = profileData.user;
+        setUserProfile(profile);
+
+        // Auto-fill difficulty from user's level
+        if (profile.level) {
+          const mappedDifficulty = mapLevelToDifficulty(profile.level);
+          if (mappedDifficulty) {
+            setDifficulty(mappedDifficulty);
+          }
+        }
+
+        // Auto-fill role from user's domain
+        if (profile.domain) {
+          // Find the domain in the list and use its slug format
+          const userDomain = domainsList.find(
+            (d: Domain) => d.id === profile.domain.id || d.name.toLowerCase() === profile.domain.name.toLowerCase()
+          );
+          
+          if (userDomain) {
+            // Use the domain name, converted to slug format to match dropdown values
+            const domainSlug = userDomain.name.toLowerCase().replace(/\s+/g, "-");
+            setRole(domainSlug);
+          } else {
+            // Fallback: use the domain name from profile
+            const domainSlug = profile.domain.name.toLowerCase().replace(/\s+/g, "-");
+            setRole(domainSlug);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    } finally {
+      setPageLoading(false);
+    }
+  };
+
   const handleStart = async () => {
-    if (!role || !difficulty || !language) {
+    if (!role || !difficulty) {
       toast({
         title: "Missing fields",
-        description: "Please fill in all fields to start the interview",
+        description: "Please select a role and difficulty level to start the interview",
         variant: "destructive",
       });
       return;
@@ -67,6 +158,17 @@ export default function InterviewSetup() {
     }
   };
 
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen gradient-mesh flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl font-bold mb-2">Loading...</div>
+          <div className="text-muted-foreground">Preparing your interview setup</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen gradient-mesh">
       <Navbar showAuth={false} showProfile={true} />
@@ -104,13 +206,27 @@ export default function InterviewSetup() {
               >
                 <Label htmlFor="role" className="text-base flex items-center gap-2">
                   <Target className="w-5 h-5 text-primary" />
-                  Target Role
+                  Target Role / Domain
+                  {userProfile?.domain && (
+                    <span className="text-xs text-muted-foreground ml-auto">(Auto-filled from profile)</span>
+                  )}
                 </Label>
                 <Select value={role} onValueChange={setRole}>
                   <SelectTrigger id="role" className="h-14 text-base bg-background/50 border-border/50">
-                    <SelectValue placeholder="Select your target role" />
+                    <SelectValue placeholder="Select your target role/domain" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover backdrop-blur-xl border-border/50">
+                    {domains.length > 0 ? (
+                      domains.map((domain) => (
+                        <SelectItem key={domain.id} value={domain.name.toLowerCase().replace(/\s+/g, "-")}>
+                          {domain.name}
+                          {domain.description && (
+                            <span className="text-muted-foreground ml-2 text-sm">- {domain.description}</span>
+                          )}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <>
                     <SelectItem value="software-engineer">Software Engineer</SelectItem>
                     <SelectItem value="senior-software-engineer">Senior Software Engineer</SelectItem>
                     <SelectItem value="frontend-developer">Frontend Developer</SelectItem>
@@ -119,6 +235,8 @@ export default function InterviewSetup() {
                     <SelectItem value="product-manager">Product Manager</SelectItem>
                     <SelectItem value="data-scientist">Data Scientist</SelectItem>
                     <SelectItem value="devops-engineer">DevOps Engineer</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </motion.div>
@@ -132,6 +250,9 @@ export default function InterviewSetup() {
                 <Label htmlFor="difficulty" className="text-base flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-primary" />
                   Difficulty Level
+                  {userProfile?.level && (
+                    <span className="text-xs text-muted-foreground ml-auto">(Auto-filled from profile)</span>
+                  )}
                 </Label>
                 <Select value={difficulty} onValueChange={setDifficulty}>
                   <SelectTrigger id="difficulty" className="h-14 text-base bg-background/50 border-border/50">
@@ -149,38 +270,11 @@ export default function InterviewSetup() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="space-y-3"
-              >
-                <Label htmlFor="language" className="text-base flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-primary" />
-                  Interview Language
-                </Label>
-                <Select value={language} onValueChange={setLanguage}>
-                  <SelectTrigger id="language" className="h-14 text-base bg-background/50 border-border/50">
-                    <SelectValue placeholder="Select interview language" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover backdrop-blur-xl border-border/50">
-                    <SelectItem value="english">English</SelectItem>
-                    <SelectItem value="spanish">Spanish</SelectItem>
-                    <SelectItem value="french">French</SelectItem>
-                    <SelectItem value="german">German</SelectItem>
-                    <SelectItem value="mandarin">Mandarin Chinese</SelectItem>
-                    <SelectItem value="japanese">Japanese</SelectItem>
-                    <SelectItem value="arabic">Arabic</SelectItem>
-                    <SelectItem value="hindi">Hindi</SelectItem>
-                  </SelectContent>
-                </Select>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
               >
                 <Button
                   onClick={handleStart}
-                  disabled={!role || !difficulty || !language || loading}
+                  disabled={!role || !difficulty || loading}
                   className="w-full h-14 text-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 disabled:opacity-50 rounded-2xl group"
                 >
                   <motion.span
@@ -199,7 +293,11 @@ export default function InterviewSetup() {
                 transition={{ delay: 0.6 }}
                 className="text-center text-sm text-muted-foreground"
               >
-                <p>💡 Tip: Choose a role and difficulty that matches your target position</p>
+                {userProfile?.domain && userProfile?.level ? (
+                  <p>✅ Your profile settings have been auto-filled. You can change them if needed.</p>
+                ) : (
+                  <p>💡 Tip: Update your profile to auto-fill these fields, or choose manually</p>
+                )}
               </motion.div>
             </CardContent>
           </Card>

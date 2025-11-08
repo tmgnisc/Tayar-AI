@@ -17,7 +17,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Briefcase, Plus, Edit, Trash2, Save, X, Users } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Briefcase, Plus, Edit, Trash2, Save, X, Users, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/config/api";
@@ -38,6 +48,9 @@ export default function AdminDomains() {
   const [loading, setLoading] = useState(true);
   const [domains, setDomains] = useState<Domain[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [domainToDelete, setDomainToDelete] = useState<{ id: number; name: string } | null>(null);
   const [editingDomain, setEditingDomain] = useState<Domain | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -156,13 +169,18 @@ export default function AdminDomains() {
     }
   };
 
-  const handleDelete = async (domainId: number, domainName: string) => {
-    if (!confirm(`Are you sure you want to delete "${domainName}"?`)) {
-      return;
-    }
+  const handleDeleteClick = (domainId: number, domainName: string) => {
+    setDomainToDelete({ id: domainId, name: domainName });
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!domainToDelete) return;
+
+    setDeleting(true);
 
     try {
-      const response = await apiRequest(`api/admin/domains/${domainId}`, {
+      const response = await apiRequest(`api/admin/domains/${domainToDelete.id}`, {
         method: 'DELETE',
       }, token);
 
@@ -173,6 +191,8 @@ export default function AdminDomains() {
           title: "Success",
           description: data.message || "Domain deleted successfully",
         });
+        setIsDeleteDialogOpen(false);
+        setDomainToDelete(null);
         fetchDomains();
       } else {
         toast({
@@ -188,6 +208,8 @@ export default function AdminDomains() {
         description: "Failed to connect to server",
         variant: "destructive",
       });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -284,7 +306,7 @@ export default function AdminDomains() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(domain.id, domain.name)}
+                              onClick={() => handleDeleteClick(domain.id, domain.name)}
                               className="text-red-600 hover:text-red-700"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -366,6 +388,75 @@ export default function AdminDomains() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => {
+          setIsDeleteDialogOpen(open);
+          if (!open) {
+            setDomainToDelete(null);
+          }
+        }}>
+          <AlertDialogContent className="sm:max-w-[500px]">
+            <AlertDialogHeader>
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div className="flex-1">
+                  <AlertDialogTitle className="text-xl">Delete Domain</AlertDialogTitle>
+                  <AlertDialogDescription className="mt-2 text-base">
+                    This action cannot be undone. This will permanently remove the domain from your system.
+                  </AlertDialogDescription>
+                </div>
+              </div>
+            </AlertDialogHeader>
+            <div className="px-1 py-2">
+              <div className="rounded-lg bg-muted/50 p-4 border border-border/50">
+                <p className="text-sm font-medium text-foreground mb-2">
+                  Domain: <span className="font-semibold text-primary">"{domainToDelete?.name}"</span>
+                </p>
+                {domainToDelete && domains.find(d => d.id === domainToDelete.id)?.user_count && domains.find(d => d.id === domainToDelete.id)!.user_count! > 0 ? (
+                  <div className="mt-3 p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>Note:</strong> This domain is currently used by {domains.find(d => d.id === domainToDelete.id)?.user_count} user(s). 
+                      It will be <strong>deactivated</strong> instead of deleted to preserve user data.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    No users are currently using this domain.
+                  </p>
+                )}
+              </div>
+            </div>
+            <AlertDialogFooter className="sm:justify-end gap-2">
+              <AlertDialogCancel 
+                onClick={() => {
+                  setDomainToDelete(null);
+                  setIsDeleteDialogOpen(false);
+                }} 
+                disabled={deleting}
+                className="mt-0"
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="bg-red-600 hover:bg-red-700 focus:ring-red-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? (
+                  <>
+                    <span className="animate-spin mr-2 inline-block">⏳</span>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete Domain"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

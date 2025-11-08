@@ -68,9 +68,22 @@ export default function Profile() {
       if (response.ok) {
         const data = await response.json();
         setDomains(data.domains || []);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error fetching domains:', errorData);
+        toast({
+          title: "Warning",
+          description: "Failed to load domains. You may not be able to select a domain.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error fetching domains:', error);
+      toast({
+        title: "Warning",
+        description: "Failed to load domains. Please refresh the page.",
+        variant: "destructive",
+      });
     }
   };
 
