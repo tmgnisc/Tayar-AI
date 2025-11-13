@@ -7,6 +7,8 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 
 if (!VAPI_API_KEY) {
   console.warn('⚠️  VAPI_API_KEY not found in environment variables');
+} else {
+  console.log('✅ VAPI_API_KEY found:', VAPI_API_KEY.substring(0, 8) + '...');
 }
 
 interface VapiCallConfig {

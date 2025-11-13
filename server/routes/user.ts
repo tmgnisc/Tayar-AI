@@ -343,12 +343,33 @@ router.post('/interviews/:id/initialize-vapi', async (req: AuthRequest, res) => 
 
       const interview = interviews[0];
 
+      // Validate interview data
+      if (!interview.role || !interview.difficulty) {
+        return res.status(400).json({
+          message: 'Interview data incomplete',
+          error: 'Missing role or difficulty',
+          interview: {
+            id: interview.id,
+            role: interview.role,
+            difficulty: interview.difficulty,
+          },
+        });
+      }
+
       // Check if Vapi call already exists
       if (interview.vapi_call_id) {
         return res.json({
           message: 'Vapi call already initialized',
           callId: interview.vapi_call_id,
           assistantId: interview.vapi_assistant_id,
+        });
+      }
+
+      // Check if VAPI_API_KEY is configured
+      if (!process.env.VAPI_API_KEY) {
+        return res.status(500).json({
+          message: 'Vapi API key not configured',
+          error: 'VAPI_API_KEY environment variable is missing',
         });
       }
 
@@ -360,16 +381,23 @@ router.post('/interviews/:id/initialize-vapi', async (req: AuthRequest, res) => 
         const { createVapiAssistant, createVapiWebCall } = await import('../services/vapi');
         
         console.log(`[Vapi] Retrying initialization for interview ${interviewId}...`);
-        
-        // Create assistant
-        const assistantId = await createVapiAssistant({
-          interviewId,
-          userId,
+        console.log(`[Vapi] Interview data:`, {
           role: interview.role,
           difficulty: interview.difficulty,
           userName: interview.user_name,
           domainName: interview.domain_name,
           domainDescription: interview.domain_description,
+        });
+        
+        // Create assistant
+        const assistantId = await createVapiAssistant({
+          interviewId,
+          userId,
+          role: interview.role || 'Software Engineer',
+          difficulty: interview.difficulty || 'intermediate',
+          userName: interview.user_name || null,
+          domainName: interview.domain_name || interview.role,
+          domainDescription: interview.domain_description || null,
         });
 
         console.log(`[Vapi] Assistant created: ${assistantId}`);
@@ -403,19 +431,60 @@ router.post('/interviews/:id/initialize-vapi', async (req: AuthRequest, res) => 
       } catch (vapiError: any) {
         console.error('[Vapi] Retry initialization error:', vapiError.message || vapiError);
         console.error('[Vapi] Error details:', vapiError.response?.data || vapiError.stack);
+        console.error('[Vapi] Full error object:', JSON.stringify(vapiError, null, 2));
+        
+        // Get more detailed error information
+        let errorMessage = vapiError.message || 'Unknown error';
+        let errorDetails = null;
+        
+        if (vapiError.response) {
+          errorDetails = vapiError.response.data || {
+            status: vapiError.response.status,
+            statusText: vapiError.response.statusText,
+            headers: vapiError.response.headers,
+          };
+          
+          // Format error message better
+          if (typeof vapiError.response.data === 'object') {
+            errorMessage = vapiError.response.data.message || 
+                          vapiError.response.data.error || 
+                          errorMessage;
+          } else if (typeof vapiError.response.data === 'string') {
+            errorMessage = vapiError.response.data;
+          }
+        }
         
         res.status(500).json({
           message: 'Failed to initialize Vapi call',
-          error: vapiError.message,
-          details: vapiError.response?.data || null,
+          error: errorMessage,
+          details: errorDetails,
+          stack: process.env.NODE_ENV === 'development' ? vapiError.stack : undefined,
         });
       }
     } finally {
       connection.release();
     }
   } catch (error: any) {
-    console.error('Initialize Vapi error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('[Initialize Vapi] Outer catch error:', error);
+    console.error('[Initialize Vapi] Error stack:', error.stack);
+    console.error('[Initialize Vapi] Full error:', JSON.stringify(error, null, 2));
+    
+    // Check if connection was released
+    if (!error.connectionReleased) {
+      try {
+        const connection = await pool.getConnection();
+        connection.release();
+      } catch (releaseError) {
+        // Ignore release errors
+      }
+    }
+    
+    res.status(500).json({ 
+      message: 'Server error during Vapi initialization', 
+      error: error.message,
+      type: error.name || 'Error',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
   }
 });
 
