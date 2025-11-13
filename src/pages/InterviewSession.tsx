@@ -132,8 +132,8 @@ export default function InterviewSession() {
     }
   };
 
-  const initializeVapiCallForInterview = async () => {
-    if (!interviewId || !token) return;
+  const initializeVapiCallForInterview = async (): Promise<string | null> => {
+    if (!interviewId || !token) return null;
 
     setIsInitializingVapi(true);
     setVapiInitError(null);
@@ -147,45 +147,121 @@ export default function InterviewSession() {
 
       if (response.ok) {
         const data = await response.json();
-        setVapiCallId(data.callId);
-        toast({
-          title: "Vapi Initialized",
-          description: "Vapi call has been successfully initialized. You can now start the interview.",
-        });
-        // Reload interview data to get updated call ID
-        await loadInterviewData();
+        const newCallId = data.callId;
+        
+        if (newCallId) {
+          setVapiCallId(newCallId);
+          // Also load the API key to make sure we have it
+          await loadVapiCallInfo(newCallId);
+          
+          toast({
+            title: "Vapi Initialized",
+            description: "Vapi call has been successfully initialized. Starting call...",
+          });
+          
+          // Reload interview data to get updated call ID
+          await loadInterviewData();
+          
+          return newCallId;
+        } else {
+          setVapiInitError('Vapi initialization completed but no call ID was returned');
+          toast({
+            title: "Initialization Failed",
+            description: "Vapi initialized but call ID is missing. Please try again.",
+            variant: "destructive",
+          });
+          return null;
+        }
       } else {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.message || errorData.error || 'Failed to initialize Vapi call';
-        setVapiInitError(errorMessage);
+        const errorDetails = errorData.details || errorData.error || '';
+        
+        // Build detailed error message
+        let detailedError = errorMessage;
+        if (errorDetails) {
+          if (typeof errorDetails === 'string') {
+            detailedError += `: ${errorDetails}`;
+          } else if (typeof errorDetails === 'object') {
+            const detailsStr = errorDetails.message || errorDetails.error || JSON.stringify(errorDetails);
+            detailedError += `: ${detailsStr}`;
+          }
+        }
+        
+        setVapiInitError(detailedError);
+        
+        console.error('[Frontend] Vapi initialization error:', errorData);
+        
         toast({
           title: "Initialization Failed",
-          description: errorMessage,
+          description: detailedError.length > 100 ? detailedError.substring(0, 100) + '...' : detailedError,
           variant: "destructive",
         });
+        return null;
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to initialize Vapi call';
       setVapiInitError(errorMessage);
+      
+      console.error('[Frontend] Vapi initialization exception:', error);
+      
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive",
       });
+      return null;
     } finally {
       setIsInitializingVapi(false);
     }
   };
 
   const initializeVapiCall = async (callId: string) => {
-    // If no call ID, try to create one or show helpful message
+    // If no call ID, try to initialize Vapi automatically
     if (!callId) {
-      toast({
-        title: "Vapi Call Not Available",
-        description: "The interview was created but Vapi initialization failed. Please try refreshing the page or start a new interview.",
-        variant: "destructive",
-      });
-      return;
+      console.log('[InterviewSession] No call ID, attempting to initialize Vapi...');
+      
+      // Check if we have API key - if yes, try to initialize Vapi
+      if (vapiApiKey && interviewId) {
+        toast({
+          title: "Initializing Vapi Call",
+          description: "Setting up your interview call. This may take a few moments...",
+        });
+        
+        // Try to initialize Vapi automatically and get the call ID directly
+        const newCallId = await initializeVapiCallForInterview();
+        
+        // If initialization succeeded, use the returned call ID directly
+        if (newCallId) {
+          // Recursively call with the new call ID
+          await initializeVapiCall(newCallId);
+          return;
+        } else {
+          // Initialization failed
+          return;
+        }
+      } else {
+        // No API key either - need to load it first
+        await loadVapiCallInfo();
+        
+        if (!vapiApiKey) {
+          toast({
+            title: "Vapi Not Configured",
+            description: "Unable to retrieve Vapi configuration. Please click 'Retry Vapi Initialization' or contact support.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Now try to initialize with API key and get call ID directly
+        if (interviewId && !isInitializingVapi) {
+          const newCallId = await initializeVapiCallForInterview();
+          if (newCallId) {
+            await initializeVapiCall(newCallId);
+          }
+        }
+        return;
+      }
     }
 
     // Try to load Vapi API key if not available
@@ -365,20 +441,55 @@ export default function InterviewSession() {
                     <div className="flex flex-col items-center gap-3">
                       <p className="text-lg">Ready to start interview</p>
                       <Button 
-                        onClick={() => {
+                        onClick={async () => {
+                          // Always try to initialize - the function will handle missing call ID
                           if (vapiCallId) {
-                            initializeVapiCall(vapiCallId);
+                            await initializeVapiCall(vapiCallId);
                           } else {
-                            toast({
-                              title: "Vapi Call Not Initialized",
-                              description: "The interview was created but Vapi call initialization is still in progress. Please wait a moment and refresh the page.",
-                              variant: "destructive",
-                            });
+                            // No call ID - try to initialize automatically
+                            if (vapiApiKey && !isInitializingVapi) {
+                              // We have API key but no call ID - try to initialize and start call
+                              const newCallId = await initializeVapiCallForInterview();
+                              if (newCallId) {
+                                // Use the returned call ID directly
+                                await initializeVapiCall(newCallId);
+                              }
+                            } else if (!vapiApiKey) {
+                              // Try to load API key first
+                              await loadVapiCallInfo();
+                              
+                              if (vapiApiKey && !isInitializingVapi) {
+                                // Initialize and start call
+                                const newCallId = await initializeVapiCallForInterview();
+                                if (newCallId) {
+                                  await initializeVapiCall(newCallId);
+                                }
+                              } else if (!vapiApiKey) {
+                                toast({
+                                  title: "Vapi Not Configured",
+                                  description: "Unable to load Vapi configuration. Please check server settings.",
+                                  variant: "destructive",
+                                });
+                              }
+                            } else {
+                              toast({
+                                title: "Please Wait",
+                                description: "Vapi is still initializing. Please wait a moment...",
+                                variant: "default",
+                              });
+                            }
                           }
                         }}
-                        disabled={callStatus !== 'idle'}
+                        disabled={callStatus !== 'idle' || isInitializingVapi}
                       >
-                        Start Call
+                        {isInitializingVapi ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Initializing...
+                          </>
+                        ) : (
+                          'Start Call'
+                        )}
                       </Button>
                       {!vapiCallId && (
                         <div className="flex flex-col items-center gap-3 mt-2">
