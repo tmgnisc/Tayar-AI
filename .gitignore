@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 .env.backup
 .env.local
-.env 
+.env server/.env
