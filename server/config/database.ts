@@ -82,6 +82,8 @@ async function createTables() {
         domain_id INT NULL,
         level ENUM('beginner', 'intermediate', 'senior', 'principal', 'lead') NULL,
         avatar_url TEXT NULL,
+        password_reset_otp VARCHAR(6) NULL,
+        password_reset_otp_expiry TIMESTAMP NULL,
         subscription_type ENUM('free', 'pro', 'enterprise') DEFAULT 'free',
         subscription_status ENUM('active', 'cancelled', 'expired') DEFAULT 'active',
         subscription_start_date DATE,
@@ -237,6 +239,49 @@ async function migrateTables() {
           console.log('✅ Added level column');
         } catch (error: any) {
           console.warn('Could not add level column:', error.message);
+        }
+      }
+
+      // Check if avatar_url column exists
+      const [avatarColumn]: any = await connection.query(
+        `SELECT 1 FROM information_schema.columns 
+         WHERE table_schema = DATABASE() 
+         AND table_name = 'users' 
+         AND column_name = 'avatar_url'`
+      );
+      
+      if (avatarColumn.length === 0) {
+        console.log('🔄 Adding avatar_url column to users table...');
+        try {
+          await connection.query(`
+            ALTER TABLE users 
+            ADD COLUMN avatar_url TEXT NULL
+          `);
+          console.log('✅ Added avatar_url column');
+        } catch (error: any) {
+          console.warn('Could not add avatar_url column:', error.message);
+        }
+      }
+
+      // Check if password reset OTP columns exist
+      const [otpColumn]: any = await connection.query(
+        `SELECT 1 FROM information_schema.columns 
+         WHERE table_schema = DATABASE() 
+         AND table_name = 'users' 
+         AND column_name = 'password_reset_otp'`
+      );
+      
+      if (otpColumn.length === 0) {
+        console.log('🔄 Adding password reset OTP columns to users table...');
+        try {
+          await connection.query(`
+            ALTER TABLE users 
+            ADD COLUMN password_reset_otp VARCHAR(6) NULL,
+            ADD COLUMN password_reset_otp_expiry TIMESTAMP NULL
+          `);
+          console.log('✅ Added password reset OTP columns');
+        } catch (error: any) {
+          console.warn('Could not add password reset OTP columns:', error.message);
         }
       }
       
