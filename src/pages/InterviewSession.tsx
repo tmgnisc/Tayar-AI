@@ -58,8 +58,21 @@ export default function InterviewSession() {
       if (voiceServiceRef.current) {
         voiceServiceRef.current.end();
       }
+      // Stop camera stream
+      if (localVideoStream) {
+        localVideoStream.getTracks().forEach(track => track.stop());
+      }
     };
-  }, []);
+  }, [localVideoStream]);
+
+  // Update video element when stream changes
+  useEffect(() => {
+    if (videoRef.current && localVideoStream) {
+      videoRef.current.srcObject = localVideoStream;
+    } else if (videoRef.current && !localVideoStream) {
+      videoRef.current.srcObject = null;
+    }
+  }, [localVideoStream]);
 
   const loadInterviewData = async () => {
     try {
@@ -82,7 +95,7 @@ export default function InterviewSession() {
     if (!interviewId || !token) return;
 
     try {
-      setInterviewStatus('connecting');
+      setInterviewStatus('active');
       setIsProcessing(true);
 
       // Request microphone permission
@@ -107,9 +120,10 @@ export default function InterviewSession() {
             return prev + (prev ? '\n\n' : '') + prefix + text;
           });
 
-          // If it's a user message, process it and get next question
-          if (isUser) {
-            handleUserAnswer(text);
+          // If it's a user message, mark as answering (but don't auto-process)
+          // User must click "Done Answering" button to submit
+          if (isUser && !isAnswering) {
+            setIsAnswering(true);
           }
         },
         onStatusChange: (status) => {
@@ -166,10 +180,6 @@ export default function InterviewSession() {
 
       setInterviewStatus('active');
       setIsProcessing(false);
-      toast({
-        title: "Interview Started",
-        description: "The AI interviewer will ask you questions. Speak clearly!",
-      });
     } catch (error: any) {
       console.error('Error starting interview:', error);
       toast({
@@ -185,12 +195,31 @@ export default function InterviewSession() {
     }
   };
 
-  const handleUserAnswer = async (userAnswer: string) => {
+  const handleDoneAnswering = async () => {
+    if (!interviewId || !token || !voiceServiceRef.current || !currentQuestionId || !isAnswering) return;
+
+    setIsAnswering(false);
+    setIsProcessing(true);
+    setVoiceStatus('processing');
+
+    // Get the last user message from conversation history
+    const conversationHistory = voiceServiceRef.current.getConversationHistory();
+    const lastUserMessage = conversationHistory
+      .filter(msg => msg.role === 'user')
+      .pop()?.text || '';
+
+    if (!lastUserMessage) {
+      setIsProcessing(false);
+      return;
+    }
+
+    await processAnswer(lastUserMessage);
+  };
+
+  const processAnswer = async (userAnswer: string) => {
     if (!interviewId || !token || !voiceServiceRef.current || !currentQuestionId) return;
 
     try {
-      setIsProcessing(true);
-      setVoiceStatus('processing');
 
       // Get conversation history
       const conversationHistory = voiceServiceRef.current.getConversationHistory();
@@ -218,16 +247,9 @@ export default function InterviewSession() {
       const evaluation = data.evaluation;
       const interviewComplete = data.interviewComplete;
 
-      // Store score for current question
+      // Store score for current question (no toast notification)
       if (evaluation && evaluation.score !== undefined) {
         setQuestionScores(prev => [...prev, { questionId: currentQuestionId, score: evaluation.score }]);
-        
-        // Show score feedback
-        toast({
-          title: `Score: ${evaluation.score}/100`,
-          description: evaluation.feedback,
-          variant: evaluation.score >= 60 ? "default" : "destructive",
-        });
       }
 
       // Add assistant message to history
@@ -248,6 +270,8 @@ export default function InterviewSession() {
       } else {
         // Speak the next question
         await voiceServiceRef.current.speak(nextMessage);
+        // Reset answering state for the next question
+        setIsAnswering(false);
       }
 
       setIsProcessing(false);
@@ -260,6 +284,46 @@ export default function InterviewSession() {
       });
       setIsProcessing(false);
       setVoiceStatus('listening');
+      setIsAnswering(false);
+    }
+  };
+
+  const toggleCamera = async () => {
+    try {
+      if (isCameraOn) {
+        // Turn off camera
+        if (localVideoStream) {
+          localVideoStream.getTracks().forEach(track => track.stop());
+          setLocalVideoStream(null);
+        }
+        setIsCameraOn(false);
+      } else {
+        // Turn on camera
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: 'user'
+            } 
+          });
+          setLocalVideoStream(stream);
+          setIsCameraOn(true);
+        } catch (error: any) {
+          toast({
+            title: "Camera Access Denied",
+            description: "Please allow camera access to enable video",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error('Error toggling camera:', error);
+      toast({
+        title: "Error",
+        description: "Failed to toggle camera",
+        variant: "destructive",
+      });
     }
   };
 
@@ -348,183 +412,195 @@ export default function InterviewSession() {
   }
 
   return (
-    <div className="min-h-screen gradient-mesh">
+    <div className="min-h-screen bg-gray-900">
       <Navbar showAuth={false} showProfile={true} />
       
-      <div className="container mx-auto px-4 pt-24 pb-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-4xl mx-auto"
-        >
-          {/* Interview Info Card */}
-          <Card className="glass-card mb-8 border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Technical Interview</span>
-                <span className="text-sm font-normal text-muted-foreground">
-                  {formatDuration(duration)}
-                </span>
-              </CardTitle>
-              <CardDescription>
-                Role: {interviewData.role} | Difficulty: {interviewData.difficulty}
-              </CardDescription>
-            </CardHeader>
-          </Card>
+      {/* Google Meet-like Video Call Interface */}
+      <div className="h-[calc(100vh-64px)] flex flex-col">
+        {/* Main Video Area - Grid Layout for Interviewer and Candidate */}
+        <div className="flex-1 relative bg-black">
+          {interviewStatus === 'idle' ? (
+            <div className="h-full flex items-center justify-center text-white">
+              <div className="space-y-6 text-center">
+                <div className="w-32 h-32 rounded-full bg-gray-700 flex items-center justify-center mx-auto">
+                  <Phone className="w-16 h-16 text-gray-400" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-semibold mb-2">Ready to start interview</h2>
+                  <p className="text-gray-400 mb-6">
+                    Role: {interviewData.role} • Difficulty: {interviewData.difficulty}
+                  </p>
+                  <Button 
+                    onClick={startInterview}
+                    disabled={isProcessing}
+                    size="lg"
+                    className="h-12 px-8"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Starting...
+                      </>
+                    ) : (
+                      'Start Interview'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="h-full grid grid-cols-2 gap-1">
+              {/* Interviewer (AI) Side - Left */}
+              <div className="relative bg-gray-800 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-40 h-40 rounded-full bg-blue-600 flex items-center justify-center mx-auto mb-4">
+                    <span className="text-5xl text-white font-semibold">AI</span>
+                  </div>
+                  <p className="text-gray-400 text-sm">AI Interviewer</p>
+                  {voiceStatus === 'speaking' && (
+                    <div className="mt-2 flex items-center justify-center gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                      <span className="text-blue-400 text-xs">Speaking...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-          {/* Interview Status */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-8"
-          >
-            <Card className="glass-card p-6 border-border/50">
-              <div className="flex items-center justify-center gap-4">
-                {interviewStatus === 'idle' && (
-                  <>
-                    <Phone className="w-6 h-6 text-muted-foreground" />
-                    <div className="flex flex-col items-center gap-3">
-                      <p className="text-lg">Ready to start interview</p>
-                      <Button 
-                        onClick={startInterview}
-                        disabled={isProcessing}
-                        className="h-12 px-8"
-                      >
-                        {isProcessing ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Starting...
-                          </>
-                        ) : (
-                          'Start Interview'
-                        )}
-                      </Button>
-                      <p className="text-sm text-muted-foreground text-center max-w-md">
-                        The AI will ask you questions based on your selected domain and level. 
-                        Make sure your microphone is working!
-                      </p>
+              {/* Candidate Side - Right */}
+              <div className="relative bg-gray-800 flex items-center justify-center">
+                {isCameraOn ? (
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-center">
+                    <div className="w-40 h-40 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
+                      <span className="text-5xl text-white font-semibold">
+                        {interviewData?.userName?.charAt(0).toUpperCase() || 'U'}
+                      </span>
                     </div>
-                  </>
-                )}
-                {interviewStatus === 'connecting' && (
-                  <>
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                    <p className="text-lg">Connecting to interview...</p>
-                  </>
-                )}
-                {interviewStatus === 'active' && (
-                  <>
-                    <div className="relative">
-                      {voiceStatus === 'listening' && (
-                        <div className="absolute inset-0 rounded-full bg-green-500 animate-ping opacity-75" />
-                      )}
-                      {voiceStatus === 'speaking' && (
-                        <div className="absolute inset-0 rounded-full bg-blue-500 animate-pulse opacity-75" />
-                      )}
-                      {voiceStatus === 'listening' ? (
-                        <Mic className="w-6 h-6 text-green-500 relative z-10" />
-                      ) : voiceStatus === 'speaking' ? (
-                        <Volume2 className="w-6 h-6 text-blue-500 relative z-10" />
-                      ) : (
-                        <Phone className="w-6 h-6 text-primary relative z-10" />
-                      )}
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <p className="text-lg font-semibold">
-                        {voiceStatus === 'listening' && 'Listening...'}
-                        {voiceStatus === 'speaking' && 'AI is speaking...'}
-                        {voiceStatus === 'processing' && 'Processing your answer...'}
-                        {voiceStatus === 'idle' && 'Interview Active'}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {voiceStatus === 'listening' && 'Speak your answer now'}
-                        {voiceStatus === 'speaking' && 'Wait for the AI to finish'}
-                        {voiceStatus === 'processing' && 'Getting next question...'}
-                      </p>
-                    </div>
-                  </>
-                )}
-                {interviewStatus === 'ended' && (
-                  <>
-                    <Phone className="w-6 h-6 text-muted-foreground" />
-                    <p className="text-lg">Interview ended</p>
-                  </>
+                    <p className="text-gray-400 text-sm">You</p>
+                    {voiceStatus === 'listening' && isAnswering && (
+                      <div className="mt-2 flex items-center justify-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                        <span className="text-green-400 text-xs">Speaking...</span>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-            </Card>
-          </motion.div>
-
-          {/* Transcript Area */}
-          <AnimatePresence>
-            {transcript && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mb-8"
-              >
-                <Card className="glass-card p-6 border-border/50">
-                  <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Live Transcript</h3>
-                  <div className="text-base leading-relaxed whitespace-pre-wrap">{transcript}</div>
-                </Card>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Control Buttons */}
-          {interviewStatus === 'active' && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="flex justify-center gap-4 mb-8"
-            >
-              <Button
-                onClick={toggleMute}
-                variant="outline"
-                className="h-12 px-8 rounded-2xl"
-                disabled={isProcessing}
-              >
-                {isMuted ? (
-                  <>
-                    <MicOff className="w-4 h-4 mr-2" />
-                    Unmute
-                  </>
-                ) : (
-                  <>
-                    <Mic className="w-4 h-4 mr-2" />
-                    Mute
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                onClick={handleEndInterview}
-                variant="outline"
-                className="border-destructive/50 hover:bg-destructive/10 text-destructive h-12 px-8 rounded-2xl"
-                disabled={isProcessing}
-              >
-                <Square className="w-4 h-4 mr-2" />
-                End Interview
-              </Button>
-            </motion.div>
+            </div>
           )}
 
-          {/* Helpful Tips */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="mt-8 text-center"
-          >
-            <Card className="glass-card p-4 border-border/50 inline-block">
-              <p className="text-sm text-muted-foreground">
-                💡 <strong>Pro Tip:</strong> Speak clearly, take your time, and think before answering. 
-                The AI interviewer is here to help you practice!
-              </p>
-            </Card>
-          </motion.div>
-        </motion.div>
+          {/* Status Overlay - Only show when active */}
+          {interviewStatus === 'active' && (
+            <>
+              {/* Timer and Info */}
+              <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2 z-10">
+                <div className="text-white text-sm font-medium">{formatDuration(duration)}</div>
+                <div className="text-gray-400 text-xs">{interviewData.role} • {interviewData.difficulty}</div>
+              </div>
+
+              {/* Processing Indicator */}
+              {voiceStatus === 'processing' && (
+                <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2 z-10">
+                  <Loader2 className="w-4 h-4 text-white animate-spin" />
+                  <span className="text-white text-sm">Processing your answer...</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Bottom Controls Bar (Google Meet Style) - Always visible when interview is active */}
+        {interviewStatus === 'active' && (
+          <div className="bg-gray-900 border-t border-gray-800 py-4">
+            <div className="container mx-auto px-4">
+              <div className="flex items-center justify-center gap-3">
+                {/* Mic Toggle */}
+                <Button
+                  onClick={toggleMute}
+                  variant="ghost"
+                  size="lg"
+                  className={`rounded-full w-12 h-12 p-0 ${
+                    isMuted 
+                      ? 'bg-red-600 hover:bg-red-700 text-white' 
+                      : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  }`}
+                  disabled={isProcessing}
+                  title={isMuted ? "Unmute" : "Mute"}
+                >
+                  {isMuted ? (
+                    <MicOff className="w-5 h-5" />
+                  ) : (
+                    <Mic className="w-5 h-5" />
+                  )}
+                </Button>
+
+                {/* Camera Toggle */}
+                <Button
+                  onClick={toggleCamera}
+                  variant="ghost"
+                  size="lg"
+                  className={`rounded-full w-12 h-12 p-0 ${
+                    isCameraOn 
+                      ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                      : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                  disabled={isProcessing}
+                  title={isCameraOn ? "Turn off camera" : "Turn on camera"}
+                >
+                  {isCameraOn ? (
+                    <Video className="w-5 h-5" />
+                  ) : (
+                    <VideoOff className="w-5 h-5" />
+                  )}
+                </Button>
+
+                {/* Done Answering Button - Only show when answering */}
+                {isAnswering && (
+                  <Button
+                    onClick={handleDoneAnswering}
+                    size="lg"
+                    className="rounded-full bg-green-600 hover:bg-green-700 text-white px-6 h-12"
+                    disabled={isProcessing}
+                  >
+                    <CheckCircle2 className="w-5 h-5 mr-2" />
+                    Done Answering
+                  </Button>
+                )}
+
+                {/* End Interview */}
+                <Button
+                  onClick={handleEndInterview}
+                  variant="ghost"
+                  size="lg"
+                  className="rounded-full w-12 h-12 p-0 bg-red-600 hover:bg-red-700 text-white"
+                  disabled={isProcessing}
+                  title="End interview"
+                >
+                  <Phone className="w-5 h-5 rotate-[135deg]" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Transcript Panel (Collapsible) */}
+        {transcript && interviewStatus === 'active' && (
+          <div className="bg-gray-800 border-t border-gray-700 max-h-48 overflow-y-auto">
+            <div className="container mx-auto px-4 py-3">
+              <h3 className="text-sm font-semibold text-gray-300 mb-2">Live Transcript</h3>
+              <div className="text-sm text-gray-400 whitespace-pre-wrap leading-relaxed">
+                {transcript}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
