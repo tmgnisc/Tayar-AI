@@ -456,8 +456,13 @@ export async function listAvailableModels(): Promise<string[]> {
  * Try different model names based on availability
  */
 export function getGeminiModel() {
-  // Use gemini-1.5-flash (most widely available and reliable)
-  return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  // Try gemini-1.5-flash-latest first (for v1beta API)
+  // Fallback to standard name if needed
+  try {
+    return genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+  } catch {
+    return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  }
 }
 
 /**
@@ -510,11 +515,13 @@ export async function startInterviewConversation(
 Now, greet the candidate and ask your first question. Keep your response concise (2-3 sentences max) - just a brief greeting and the first question.`;
 
   // Try different model name formats for v1beta API
-  // The API version might require different naming conventions
+  // The v1beta API may require specific model name formats
   const modelNames = [
+    'gemini-1.5-flash-001',     // Versioned format for v1beta
     'gemini-1.5-flash-latest',  // Latest version format
     'gemini-1.5-flash',         // Standard format
-    'gemini-1.5-pro-latest',    // Pro version as fallback
+    'gemini-1.5-pro-001',       // Pro versioned format
+    'gemini-1.5-pro-latest',    // Pro latest format
     'gemini-1.5-pro',           // Pro standard format
   ];
 
@@ -623,25 +630,72 @@ export async function continueInterviewConversation(
   let lastKeyError: any = null;
   
   for (let keyAttempt = 0; keyAttempt < maxKeyAttempts; keyAttempt++) {
-    const apiKey = getNextApiKey();
-    const keyNumber = ((currentKeyIndex - 1 + ALL_API_KEYS.length) % ALL_API_KEYS.length) + 1;
-    
     try {
-      const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const chat = model.startChat({
-        history: chatHistory,
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 512,
-        },
-      });
+      const apiKey = getNextApiKey();
+      const keyNumber = ((currentKeyIndex - 1 + ALL_API_KEYS.length) % ALL_API_KEYS.length) + 1;
       
-      const result = await chat.sendMessage(messageToSend);
-      const response = await result.response;
-      console.log(`[Gemini] ✅ Key ${keyNumber} used for continue conversation`);
-      return response.text();
+      // Try different model name formats for v1beta API
+      const modelNameOptions = [
+        'gemini-1.5-flash-001',
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-flash',
+        'gemini-1.5-pro-001',
+        'gemini-1.5-pro-latest',
+        'gemini-1.5-pro',
+      ];
+      
+      let success = false;
+      for (const modelName of modelNameOptions) {
+        try {
+          const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: modelName });
+          const chat = model.startChat({
+            history: chatHistory,
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 512,
+            },
+          });
+          
+          const result = await chat.sendMessage(messageToSend);
+          const response = await result.response;
+          console.log(`[Gemini] ✅ Key ${keyNumber} used for continue conversation with model: ${modelName}`);
+          success = true;
+          return response.text();
+        } catch (modelError: any) {
+          // If it's not a model name error, check if it's a quota/key error
+          const errorMsg = modelError.message || String(modelError);
+          const errorStatus = modelError.status || modelError.response?.status;
+          
+          // If it's a quota/key error, break out and try next API key
+          if (errorMsg.includes('quota') || errorMsg.includes('limit') || errorStatus === 429 ||
+              errorStatus === 401 || (errorStatus === 403 && errorMsg.includes('api'))) {
+            console.log(`[Gemini] ⚠️  Key ${keyNumber} quota/key error with model ${modelName}, trying next key...`);
+            lastKeyError = modelError;
+            success = false;
+            break; // Break out of model name loop, will continue to next key
+          }
+          
+          // If it's a 404/not found error, try next model name
+          if (errorMsg.includes('404') || errorMsg.includes('not found')) {
+            continue; // Try next model name
+          }
+          
+          // Other errors - throw immediately
+          throw modelError;
+        }
+      }
+      
+      // If we get here, all model names failed for this key
+      if (!success) {
+        // Try next API key
+        console.log(`[Gemini] ⚠️  Key ${keyNumber} - all model names failed, trying next key...`);
+        if (!lastKeyError) {
+          lastKeyError = new Error('All model name formats failed for this API key');
+        }
+        continue; // Try next API key
+      }
     } catch (error: any) {
       const errorMsg = error.message || String(error);
       const errorStatus = error.status || error.response?.status;
@@ -649,6 +703,7 @@ export async function continueInterviewConversation(
       // Check if it's a quota/key error - try next key
       if (errorMsg.includes('quota') || errorMsg.includes('limit') || errorStatus === 429 ||
           errorStatus === 401 || (errorStatus === 403 && errorMsg.includes('api'))) {
+        const keyNumber = ((currentKeyIndex - 1 + ALL_API_KEYS.length) % ALL_API_KEYS.length) + 1;
         console.log(`[Gemini] ⚠️  Key ${keyNumber} failed, rotating to next key...`);
         lastKeyError = error;
         continue;
