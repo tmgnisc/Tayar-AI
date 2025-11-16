@@ -188,71 +188,6 @@ router.post('/interviews', async (req: AuthRequest, res) => {
 
       const interviewId = result.insertId;
 
-      // Initialize Vapi call for web-based interview (with timeout to prevent hanging)
-      let vapiCallId: string | null = null;
-      let vapiAssistantId: string | null = null;
-
-      // Create Vapi call with timeout to prevent the endpoint from hanging
-      const vapiResult = await Promise.race([
-        (async () => {
-          try {
-            const { createVapiAssistant, createVapiWebCall } = await import('../services/vapi');
-            
-            console.log(`[Vapi] Creating assistant for interview ${interviewId}...`);
-            
-            // First create the assistant with user's domain and level
-            const assistantId = await createVapiAssistant({
-              interviewId,
-              userId,
-              role: interviewRole,
-              difficulty: interviewDifficulty,
-              userName: user.name,
-              domainName: user.domain_name,
-              domainDescription: user.domain_description,
-            });
-
-            console.log(`[Vapi] Assistant created: ${assistantId}`);
-
-            // Then create the call with the assistant
-            const vapiCall = await createVapiWebCall({
-              interviewId,
-              userId,
-              role: interviewRole,
-              difficulty: interviewDifficulty,
-              userName: user.name,
-              assistantId: assistantId,
-            });
-
-            console.log(`[Vapi] Call created: ${vapiCall.id}`);
-
-            // Update interview with Vapi call ID and assistant ID
-            await connection.query(
-              'UPDATE interviews SET vapi_call_id = ?, vapi_assistant_id = ? WHERE id = ?',
-              [vapiCall.id, assistantId, interviewId]
-            );
-
-            return { vapiCallId: vapiCall.id, vapiAssistantId: assistantId };
-          } catch (vapiError: any) {
-            console.error('[Vapi] Initialization error:', vapiError.message || vapiError);
-            console.error('[Vapi] Error details:', vapiError.response?.data || vapiError.stack);
-            throw vapiError;
-          }
-        })(),
-        // Timeout after 25 seconds (before the 30 second axios timeout)
-        new Promise<{ vapiCallId: null; vapiAssistantId: null }>((resolve) => 
-          setTimeout(() => {
-            console.warn('[Vapi] Initialization timeout after 25 seconds - continuing without Vapi');
-            resolve({ vapiCallId: null, vapiAssistantId: null });
-          }, 25000)
-        )
-      ]).catch((error: any) => {
-        console.error('[Vapi] Failed to initialize:', error.message);
-        return { vapiCallId: null, vapiAssistantId: null };
-      });
-
-      vapiCallId = vapiResult.vapiCallId;
-      vapiAssistantId = vapiResult.vapiAssistantId;
-
       // Log activity
       await connection.query(
         'INSERT INTO activity_logs (user_id, activity_type, description) VALUES (?, ?, ?)',
@@ -262,8 +197,6 @@ router.post('/interviews', async (req: AuthRequest, res) => {
       res.status(201).json({
         message: 'Interview started',
         interviewId,
-        vapiCallId,
-        vapiStatus: vapiCallId ? 'initialized' : 'failed',
       });
     } finally {
       connection.release();
@@ -484,6 +417,211 @@ router.post('/interviews/:id/initialize-vapi', async (req: AuthRequest, res) => 
       error: error.message,
       type: error.name || 'Error',
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
+  }
+});
+
+// Start interview conversation - get first question
+router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) => {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    const userId = req.userId!;
+    const interviewId = parseInt(req.params.id);
+
+    console.log(`[Start Conversation] Starting conversation for interview ${interviewId}, user ${userId}`);
+
+    // Get interview details
+    // Note: interviews.role contains the domain name, not a domain_id
+    const [interviews]: any = await connection.query(
+      `SELECT i.*
+       FROM interviews i
+       WHERE i.id = ? AND i.user_id = ?`,
+      [interviewId, userId]
+    );
+
+    if (interviews.length === 0) {
+      console.log(`[Start Conversation] Interview ${interviewId} not found for user ${userId}`);
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+
+    const interview = interviews[0];
+    console.log(`[Start Conversation] Interview found:`, {
+      role: interview.role,
+      difficulty: interview.difficulty,
+      language: interview.language,
+    });
+
+    // Get user name
+    const [users]: any = await connection.query(
+      'SELECT name FROM users WHERE id = ?',
+      [userId]
+    );
+    const userName = users[0]?.name || null;
+
+    // Get domain information by name (interview.role contains the domain name)
+    let domainName = interview.role;
+    let domainDescription = null;
+    
+    if (interview.role) {
+      const [domains]: any = await connection.query(
+        'SELECT name, description FROM domains WHERE name = ?',
+        [interview.role]
+      );
+      if (domains.length > 0) {
+        domainName = domains[0].name;
+        domainDescription = domains[0].description;
+      }
+    }
+
+    // Check if Gemini API key is available
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('[Start Conversation] GEMINI_API_KEY not found in environment variables');
+      return res.status(500).json({
+        message: 'Gemini API key not configured',
+        error: 'GEMINI_API_KEY environment variable is missing',
+      });
+    }
+
+    // Start conversation with Gemini
+    console.log('[Start Conversation] Importing Gemini service...');
+    const { startInterviewConversation, generateInterviewPrompt } = await import('../services/gemini');
+    
+    console.log('[Start Conversation] Generating interview prompt...');
+    const systemPrompt = generateInterviewPrompt({
+      role: interview.role,
+      difficulty: interview.difficulty,
+      language: interview.language || 'english',
+      userName: userName,
+      domainName: domainName,
+      domainDescription: domainDescription,
+    });
+
+    console.log('[Start Conversation] Starting Gemini conversation...');
+      const { message, conversationId } = await startInterviewConversation(
+        {
+          role: interview.role,
+          difficulty: interview.difficulty,
+          language: interview.language || 'english',
+          userName: userName,
+          domainName: domainName,
+          domainDescription: domainDescription,
+        },
+        systemPrompt
+      );
+
+    console.log(`[Start Conversation] Success! Conversation ID: ${conversationId}`);
+
+    res.json({
+      message,
+      conversationId,
+    });
+  } catch (error: any) {
+    console.error('[Start Conversation] Error:', error);
+    console.error('[Start Conversation] Error stack:', error.stack);
+    console.error('[Start Conversation] Error details:', {
+      message: error.message,
+      name: error.name,
+      response: error.response?.data,
+      status: error.response?.status,
+    });
+    
+    res.status(500).json({
+      message: 'Failed to start interview conversation',
+      error: error.message || 'Unknown error',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+});
+
+// Continue interview conversation - process answer and get next question
+router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const userId = req.userId!;
+    const interviewId = parseInt(req.params.id);
+    const { conversationHistory } = req.body;
+
+    if (!Array.isArray(conversationHistory)) {
+      return res.status(400).json({ message: 'conversationHistory must be an array' });
+    }
+
+    try {
+      // Get interview details
+      // Note: interviews.role contains the domain name, not a domain_id
+      const [interviews]: any = await connection.query(
+        `SELECT i.*
+         FROM interviews i
+         WHERE i.id = ? AND i.user_id = ?`,
+        [interviewId, userId]
+      );
+
+      if (interviews.length === 0) {
+        return res.status(404).json({ message: 'Interview not found' });
+      }
+
+      const interview = interviews[0];
+
+      // Get user name
+      const [users]: any = await connection.query(
+        'SELECT name FROM users WHERE id = ?',
+        [userId]
+      );
+      const userName = users[0]?.name || null;
+
+      // Get domain information by name (interview.role contains the domain name)
+      let domainName = interview.role;
+      let domainDescription = null;
+      
+      if (interview.role) {
+        const [domains]: any = await connection.query(
+          'SELECT name, description FROM domains WHERE name = ?',
+          [interview.role]
+        );
+        if (domains.length > 0) {
+          domainName = domains[0].name;
+          domainDescription = domains[0].description;
+        }
+      }
+
+      // Continue conversation with Gemini
+      const { continueInterviewConversation, generateInterviewPrompt } = await import('../services/gemini');
+      
+      const systemPrompt = generateInterviewPrompt({
+        role: interview.role,
+        difficulty: interview.difficulty,
+        language: interview.language || 'english',
+        userName: userName,
+        domainName: domainName,
+        domainDescription: domainDescription,
+      });
+
+      const message = await continueInterviewConversation(
+        {
+          role: interview.role,
+          difficulty: interview.difficulty,
+          language: interview.language || 'english',
+          userName: userName,
+          domainName: domainName,
+          domainDescription: domainDescription,
+        },
+        conversationHistory,
+        systemPrompt
+      );
+
+      res.json({ message });
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Continue conversation error:', error);
+    res.status(500).json({
+      message: 'Failed to continue interview conversation',
+      error: error.message,
     });
   }
 });
