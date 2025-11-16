@@ -474,18 +474,18 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
       }
     }
 
-    // Check if OpenAI API key is available
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('[Start Conversation] OPENAI_API_KEY not found in environment variables');
+    // Check if Groq API key is available
+    if (!process.env.GROQ_API_KEY) {
+      console.error('[Start Conversation] GROQ_API_KEY not found in environment variables');
       return res.status(500).json({
-        message: 'OpenAI API key not configured',
-        error: 'OPENAI_API_KEY environment variable is missing',
+        message: 'Groq API key not configured',
+        error: 'GROQ_API_KEY environment variable is missing',
       });
     }
 
-    // Start conversation with OpenAI
-    console.log('[Start Conversation] Importing OpenAI service...');
-    const { startInterviewConversation, generateInterviewPrompt } = await import('../services/openai');
+    // Start conversation with Groq (free AI API)
+    console.log('[Start Conversation] Importing Groq service...');
+    const { startInterviewConversation, generateInterviewPrompt } = await import('../services/groq');
     
     console.log('[Start Conversation] Generating interview prompt...');
     const systemPrompt = generateInterviewPrompt({
@@ -497,7 +497,7 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
       domainDescription: domainDescription,
     });
 
-    console.log('[Start Conversation] Starting OpenAI conversation...');
+    console.log('[Start Conversation] Starting Groq conversation...');
       const { message, conversationId } = await startInterviewConversation(
         {
           role: interview.role,
@@ -588,8 +588,8 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         }
       }
 
-      // Continue conversation with OpenAI
-      const { continueInterviewConversation, generateInterviewPrompt } = await import('../services/openai');
+      // Continue conversation with Groq (free AI API)
+      const { continueInterviewConversation, generateInterviewPrompt } = await import('../services/groq');
       
       const systemPrompt = generateInterviewPrompt({
         role: interview.role,
@@ -659,10 +659,10 @@ router.post('/interviews/:id/transcript', async (req: AuthRequest, res) => {
         [transcript || null, recordingUrl || null, duration || null, interviewId]
       );
 
-      // Generate feedback using OpenAI if transcript is available
+      // Generate feedback using Groq if transcript is available
       if (transcript) {
         try {
-          const { generateInterviewFeedback } = await import('../services/openai');
+          const { generateInterviewFeedback } = await import('../services/groq');
           const feedback = await generateInterviewFeedback(transcript, {
             role: interview.role,
             difficulty: interview.difficulty,
