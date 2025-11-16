@@ -1,9 +1,20 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import dotenv from 'dotenv';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// Ensure .env is loaded (in case this module is imported before index.ts loads it)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, '..', '.env') });
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 if (!GEMINI_API_KEY) {
   console.warn('⚠️  GEMINI_API_KEY not found in environment variables');
+  console.warn('⚠️  Available env vars:', Object.keys(process.env).filter(k => k.includes('GEMINI') || k.includes('API')));
+} else {
+  console.log('✅ GEMINI_API_KEY loaded:', GEMINI_API_KEY.substring(0, 10) + '...');
 }
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -355,7 +366,9 @@ export function generateInterviewQuestions(context: InterviewContext): string[] 
  * Get Gemini model for conversation
  */
 export function getGeminiModel() {
-  return genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+  // Use gemini-pro which is the most widely available model
+  // If you have access to gemini-1.5-pro, you can change this
+  return genAI.getGenerativeModel({ model: 'gemini-pro' });
 }
 
 /**
@@ -390,6 +403,127 @@ export async function generateAIResponse(
   } catch (error: any) {
     console.error('Gemini API error:', error);
     throw new Error(`Failed to generate AI response: ${error.message}`);
+  }
+}
+
+/**
+ * Start interview conversation - get the first question
+ */
+export async function startInterviewConversation(
+  context: InterviewContext,
+  systemPrompt?: string
+): Promise<{ message: string; conversationId: string }> {
+  try {
+    // Re-check environment variable in case it wasn't loaded when module was imported
+    const apiKey = process.env.GEMINI_API_KEY || GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error('[Gemini] GEMINI_API_KEY check failed. process.env.GEMINI_API_KEY:', process.env.GEMINI_API_KEY);
+      throw new Error('GEMINI_API_KEY is not configured. Please set it in your environment variables.');
+    }
+
+    console.log('[Gemini] Getting model...');
+    // Use the re-checked API key to create model
+    // Try gemini-pro first (most widely available), fallback to gemini-1.5-pro if needed
+    const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: 'gemini-pro' });
+    const prompt = systemPrompt || generateInterviewPrompt(context);
+    
+    console.log('[Gemini] Generating initial prompt...');
+    // Create initial greeting and first question
+    const initialPrompt = `${prompt}
+
+Now, greet the candidate and ask your first question. Keep your response concise (2-3 sentences max) - just a brief greeting and the first question.`;
+
+    console.log('[Gemini] Calling generateContent...');
+    const result = await model.generateContent(initialPrompt);
+    const response = await result.response;
+    const message = response.text();
+    
+    console.log('[Gemini] Response received, length:', message.length);
+    
+    // Generate a simple conversation ID (in production, you'd store this in DB)
+    const conversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    return { message, conversationId };
+  } catch (error: any) {
+    console.error('[Gemini] Error starting interview conversation:', error);
+    console.error('[Gemini] Error details:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      response: error.response?.data,
+      status: error.response?.status,
+    });
+    
+    // Provide more helpful error messages
+    if (error.message?.includes('API_KEY')) {
+      throw new Error('Invalid or missing Gemini API key. Please check your GEMINI_API_KEY environment variable.');
+    }
+    if (error.message?.includes('quota') || error.message?.includes('limit')) {
+      throw new Error('Gemini API quota exceeded. Please check your API usage limits.');
+    }
+    if (error.response?.status === 400) {
+      throw new Error(`Gemini API error: ${error.response?.data?.error?.message || error.message}`);
+    }
+    
+    throw new Error(`Failed to start interview: ${error.message || 'Unknown error'}`);
+  }
+}
+
+/**
+ * Continue interview conversation - process answer and get next question
+ */
+export async function continueInterviewConversation(
+  context: InterviewContext,
+  conversationHistory: Array<{ role: 'user' | 'assistant'; text: string }>,
+  systemPrompt?: string
+): Promise<string> {
+  try {
+    const model = getGeminiModel();
+    const prompt = systemPrompt || generateInterviewPrompt(context);
+    
+    // Build conversation history for Gemini
+    // Include system prompt as the first message if history is short
+    const history = conversationHistory.slice(-10).map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.text }],
+    }));
+
+    // If history is empty or very short, prepend system instruction
+    let chatHistory = history;
+    if (history.length < 2) {
+      // Add system instruction as model message at the start
+      chatHistory = [
+        {
+          role: 'model' as const,
+          parts: [{ text: `I understand. I'm conducting a ${context.difficulty} level interview for ${context.role}. I'll ask relevant questions and provide feedback.` }],
+        },
+        ...history,
+      ];
+    }
+
+    const chat = model.startChat({
+      history: chatHistory,
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 512, // Shorter responses for voice
+      },
+    });
+
+    // Get the last user message
+    const lastUserMessage = conversationHistory.filter(msg => msg.role === 'user').pop()?.text || '';
+    
+    // Include system context in the message if needed
+    const messageToSend = lastUserMessage || 'Continue the interview with the next question.';
+    
+    // Generate response
+    const result = await chat.sendMessage(messageToSend);
+    const response = await result.response;
+    return response.text();
+  } catch (error: any) {
+    console.error('Error continuing interview conversation:', error);
+    throw new Error(`Failed to continue interview: ${error.message}`);
   }
 }
 
