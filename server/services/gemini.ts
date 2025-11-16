@@ -8,16 +8,73 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '..', '.env') });
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-
-if (!GEMINI_API_KEY) {
-  console.warn('⚠️  GEMINI_API_KEY not found in environment variables');
-  console.warn('⚠️  Available env vars:', Object.keys(process.env).filter(k => k.includes('GEMINI') || k.includes('API')));
-} else {
-  console.log('✅ GEMINI_API_KEY loaded:', GEMINI_API_KEY.substring(0, 10) + '...');
+/**
+ * Get all available Gemini API keys from environment variables
+ * Supports both single key (GEMINI_API_KEY) and multiple keys (GEMINI_API_KEY_1, GEMINI_API_KEY_2, etc.)
+ */
+function getAllApiKeys(): string[] {
+  const keys: string[] = [];
+  
+  // Check for single key first
+  if (process.env.GEMINI_API_KEY) {
+    keys.push(process.env.GEMINI_API_KEY);
+  }
+  
+  // Check for multiple keys (GEMINI_API_KEY_1, GEMINI_API_KEY_2, etc.)
+  let index = 1;
+  while (process.env[`GEMINI_API_KEY_${index}`]) {
+    keys.push(process.env[`GEMINI_API_KEY_${index}`]!);
+    index++;
+  }
+  
+  // Also check for comma-separated keys in GEMINI_API_KEYS
+  if (process.env.GEMINI_API_KEYS) {
+    const commaSeparatedKeys = process.env.GEMINI_API_KEYS.split(',').map(k => k.trim()).filter(k => k);
+    keys.push(...commaSeparatedKeys);
+  }
+  
+  // Remove duplicates
+  return [...new Set(keys.filter(k => k && k.trim() !== ''))];
 }
 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const ALL_API_KEYS = getAllApiKeys();
+let currentKeyIndex = 0;
+
+if (ALL_API_KEYS.length === 0) {
+  console.warn('⚠️  No GEMINI_API_KEY found in environment variables');
+  console.warn('⚠️  Available env vars:', Object.keys(process.env).filter(k => k.includes('GEMINI') || k.includes('API')));
+} else {
+  console.log(`✅ Loaded ${ALL_API_KEYS.length} Gemini API key(s)`);
+  ALL_API_KEYS.forEach((key, index) => {
+    console.log(`   Key ${index + 1}: ${key.substring(0, 10)}...`);
+  });
+}
+
+/**
+ * Get the next API key in rotation
+ */
+function getNextApiKey(): string {
+  if (ALL_API_KEYS.length === 0) {
+    throw new Error('No Gemini API keys configured');
+  }
+  
+  const key = ALL_API_KEYS[currentKeyIndex];
+  currentKeyIndex = (currentKeyIndex + 1) % ALL_API_KEYS.length;
+  return key;
+}
+
+/**
+ * Get current API key (without rotating)
+ */
+function getCurrentApiKey(): string {
+  if (ALL_API_KEYS.length === 0) {
+    throw new Error('No Gemini API keys configured');
+  }
+  return ALL_API_KEYS[currentKeyIndex];
+}
+
+// Initialize with first key
+const genAI = new GoogleGenerativeAI(getCurrentApiKey());
 
 interface InterviewContext {
   role: string;
@@ -363,12 +420,44 @@ export function generateInterviewQuestions(context: InterviewContext): string[] 
 }
 
 /**
+ * List available Gemini models (for debugging)
+ */
+export async function listAvailableModels(): Promise<string[]> {
+  try {
+    // Note: The SDK doesn't have a direct listModels method
+    // This is a helper that tries common model names
+    const commonModels = [
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+      'gemini-pro',
+      'gemini-2.0-flash-exp',
+    ];
+    
+    const available: string[] = [];
+    for (const modelName of commonModels) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        // Try a minimal test call
+        await model.generateContent('test');
+        available.push(modelName);
+      } catch (error) {
+        // Model not available, skip
+      }
+    }
+    return available;
+  } catch (error) {
+    console.error('Error listing models:', error);
+    return [];
+  }
+}
+
+/**
  * Get Gemini model for conversation
+ * Try different model names based on availability
  */
 export function getGeminiModel() {
-  // Use gemini-pro which is the most widely available model
-  // If you have access to gemini-1.5-pro, you can change this
-  return genAI.getGenerativeModel({ model: 'gemini-pro' });
+  // Use gemini-1.5-flash (most widely available and reliable)
+  return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 }
 
 /**
@@ -413,60 +502,90 @@ export async function startInterviewConversation(
   context: InterviewContext,
   systemPrompt?: string
 ): Promise<{ message: string; conversationId: string }> {
-  try {
-    // Re-check environment variable in case it wasn't loaded when module was imported
-    const apiKey = process.env.GEMINI_API_KEY || GEMINI_API_KEY;
-    if (!apiKey) {
-      console.error('[Gemini] GEMINI_API_KEY check failed. process.env.GEMINI_API_KEY:', process.env.GEMINI_API_KEY);
-      throw new Error('GEMINI_API_KEY is not configured. Please set it in your environment variables.');
-    }
-
-    console.log('[Gemini] Getting model...');
-    // Use the re-checked API key to create model
-    // Try gemini-pro first (most widely available), fallback to gemini-1.5-pro if needed
-    const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: 'gemini-pro' });
-    const prompt = systemPrompt || generateInterviewPrompt(context);
-    
-    console.log('[Gemini] Generating initial prompt...');
-    // Create initial greeting and first question
-    const initialPrompt = `${prompt}
+  const prompt = systemPrompt || generateInterviewPrompt(context);
+  
+  // Create initial greeting and first question
+  const initialPrompt = `${prompt}
 
 Now, greet the candidate and ask your first question. Keep your response concise (2-3 sentences max) - just a brief greeting and the first question.`;
 
-    console.log('[Gemini] Calling generateContent...');
-    const result = await model.generateContent(initialPrompt);
-    const response = await result.response;
-    const message = response.text();
+  // Try different model name formats for v1beta API
+  // The API version might require different naming conventions
+  const modelNames = [
+    'gemini-1.5-flash-latest',  // Latest version format
+    'gemini-1.5-flash',         // Standard format
+    'gemini-1.5-pro-latest',    // Pro version as fallback
+    'gemini-1.5-pro',           // Pro standard format
+  ];
+
+  // Try each API key until one works
+  const maxKeyAttempts = ALL_API_KEYS.length;
+  let lastKeyError: any = null;
+  
+  for (let keyAttempt = 0; keyAttempt < maxKeyAttempts; keyAttempt++) {
+    const apiKey = getNextApiKey();
+    const keyNumber = ((currentKeyIndex - 1 + ALL_API_KEYS.length) % ALL_API_KEYS.length) + 1;
+    console.log(`[Gemini] Trying API key ${keyNumber}/${ALL_API_KEYS.length} (${apiKey.substring(0, 10)}...)`);
     
-    console.log('[Gemini] Response received, length:', message.length);
+    let result: any = null;
+    let lastModelError: any = null;
     
-    // Generate a simple conversation ID (in production, you'd store this in DB)
-    const conversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    return { message, conversationId };
-  } catch (error: any) {
-    console.error('[Gemini] Error starting interview conversation:', error);
-    console.error('[Gemini] Error details:', {
-      message: error.message,
-      name: error.name,
-      stack: error.stack,
-      response: error.response?.data,
-      status: error.response?.status,
-    });
-    
-    // Provide more helpful error messages
-    if (error.message?.includes('API_KEY')) {
-      throw new Error('Invalid or missing Gemini API key. Please check your GEMINI_API_KEY environment variable.');
+    // Try each model with current API key
+    for (const modelName of modelNames) {
+      try {
+        console.log(`[Gemini] Key ${keyNumber} - Trying model: ${modelName}...`);
+        const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: modelName });
+        
+        console.log('[Gemini] Generating initial prompt...');
+        console.log('[Gemini] Calling generateContent...');
+        result = await model.generateContent(initialPrompt);
+        console.log(`[Gemini] ✅ Successfully used key ${keyNumber} with model: ${modelName}`);
+        
+        // Success! Return the result
+        const response = await result.response;
+        const message = response.text();
+        
+        console.log('[Gemini] Response received, length:', message.length);
+        
+        // Generate a simple conversation ID
+        const conversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        return { message, conversationId };
+      } catch (error: any) {
+        const errorMsg = error.message || String(error);
+        const errorStatus = error.status || error.response?.status;
+        
+        console.log(`[Gemini] Key ${keyNumber} - Model ${modelName} failed:`, errorMsg.substring(0, 150));
+        
+        // Check if it's a quota error - if so, try next key
+        if (errorMsg.includes('quota') || errorMsg.includes('limit') || errorStatus === 429) {
+          console.log(`[Gemini] ⚠️  Key ${keyNumber} quota exceeded, rotating to next key...`);
+          lastKeyError = error;
+          break; // Break out of model loop, try next key
+        }
+        
+        // Check if it's an API key error - if so, try next key
+        if (errorStatus === 401 || (errorStatus === 403 && errorMsg.includes('api'))) {
+          console.log(`[Gemini] ⚠️  Key ${keyNumber} invalid/denied, rotating to next key...`);
+          lastKeyError = error;
+          break; // Break out of model loop, try next key
+        }
+        
+        // Other errors - try next model
+        lastModelError = error;
+      }
     }
-    if (error.message?.includes('quota') || error.message?.includes('limit')) {
-      throw new Error('Gemini API quota exceeded. Please check your API usage limits.');
-    }
-    if (error.response?.status === 400) {
-      throw new Error(`Gemini API error: ${error.response?.data?.error?.message || error.message}`);
-    }
     
-    throw new Error(`Failed to start interview: ${error.message || 'Unknown error'}`);
+    // If we got here, all models failed for this key, but it wasn't a quota/key error
+    // Try next key anyway
+    if (!result && lastModelError) {
+      console.log(`[Gemini] ⚠️  Key ${keyNumber} failed with all models, trying next key...`);
+      lastKeyError = lastModelError;
+    }
   }
+  
+  // All keys exhausted
+  throw new Error(`All Gemini API keys exhausted. Last error: ${lastKeyError?.message || 'Unknown error'}. Please check your API keys or wait for quota reset.`);
 }
 
 /**
@@ -477,54 +596,71 @@ export async function continueInterviewConversation(
   conversationHistory: Array<{ role: 'user' | 'assistant'; text: string }>,
   systemPrompt?: string
 ): Promise<string> {
-  try {
-    const model = getGeminiModel();
-    const prompt = systemPrompt || generateInterviewPrompt(context);
-    
-    // Build conversation history for Gemini
-    // Include system prompt as the first message if history is short
-    const history = conversationHistory.slice(-10).map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.text }],
-    }));
+  // Build conversation history for Gemini
+  const history = conversationHistory.slice(-10).map(msg => ({
+    role: msg.role === 'user' ? 'user' : 'model',
+    parts: [{ text: msg.text }],
+  }));
 
-    // If history is empty or very short, prepend system instruction
-    let chatHistory = history;
-    if (history.length < 2) {
-      // Add system instruction as model message at the start
-      chatHistory = [
-        {
-          role: 'model' as const,
-          parts: [{ text: `I understand. I'm conducting a ${context.difficulty} level interview for ${context.role}. I'll ask relevant questions and provide feedback.` }],
-        },
-        ...history,
-      ];
-    }
-
-    const chat = model.startChat({
-      history: chatHistory,
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 512, // Shorter responses for voice
+  // If history is empty or very short, prepend system instruction
+  let chatHistory = history;
+  if (history.length < 2) {
+    chatHistory = [
+      {
+        role: 'model' as const,
+        parts: [{ text: `I understand. I'm conducting a ${context.difficulty} level interview for ${context.role}. I'll ask relevant questions and provide feedback.` }],
       },
-    });
-
-    // Get the last user message
-    const lastUserMessage = conversationHistory.filter(msg => msg.role === 'user').pop()?.text || '';
-    
-    // Include system context in the message if needed
-    const messageToSend = lastUserMessage || 'Continue the interview with the next question.';
-    
-    // Generate response
-    const result = await chat.sendMessage(messageToSend);
-    const response = await result.response;
-    return response.text();
-  } catch (error: any) {
-    console.error('Error continuing interview conversation:', error);
-    throw new Error(`Failed to continue interview: ${error.message}`);
+      ...history,
+    ];
   }
+
+  // Get the last user message
+  const lastUserMessage = conversationHistory.filter(msg => msg.role === 'user').pop()?.text || '';
+  const messageToSend = lastUserMessage || 'Continue the interview with the next question.';
+
+  // Try each API key until one works
+  const maxKeyAttempts = ALL_API_KEYS.length;
+  let lastKeyError: any = null;
+  
+  for (let keyAttempt = 0; keyAttempt < maxKeyAttempts; keyAttempt++) {
+    const apiKey = getNextApiKey();
+    const keyNumber = ((currentKeyIndex - 1 + ALL_API_KEYS.length) % ALL_API_KEYS.length) + 1;
+    
+    try {
+      const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const chat = model.startChat({
+        history: chatHistory,
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 512,
+        },
+      });
+      
+      const result = await chat.sendMessage(messageToSend);
+      const response = await result.response;
+      console.log(`[Gemini] ✅ Key ${keyNumber} used for continue conversation`);
+      return response.text();
+    } catch (error: any) {
+      const errorMsg = error.message || String(error);
+      const errorStatus = error.status || error.response?.status;
+      
+      // Check if it's a quota/key error - try next key
+      if (errorMsg.includes('quota') || errorMsg.includes('limit') || errorStatus === 429 ||
+          errorStatus === 401 || (errorStatus === 403 && errorMsg.includes('api'))) {
+        console.log(`[Gemini] ⚠️  Key ${keyNumber} failed, rotating to next key...`);
+        lastKeyError = error;
+        continue;
+      }
+      
+      // Other errors - throw immediately
+      throw new Error(`Failed to continue interview: ${error.message}`);
+    }
+  }
+  
+  // All keys exhausted
+  throw new Error(`All Gemini API keys exhausted. Last error: ${lastKeyError?.message || 'Unknown error'}. Please check your API keys or wait for quota reset.`);
 }
 
 /**
