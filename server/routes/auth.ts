@@ -132,6 +132,7 @@ router.post('/login', async (req, res) => {
           domain_id: user.domain_id,
           domain: domain,
           level: user.level,
+          avatar_url: user.avatar_url || null,
           subscription_type: user.subscription_type,
           subscription_status: user.subscription_status,
         },
@@ -212,6 +213,122 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
+  }
+});
+
+// Forgot Password - Send OTP
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const connection = await pool.getConnection();
+    
+    try {
+      const [users]: any = await connection.query(
+        'SELECT * FROM users WHERE email = ?',
+        [email]
+      );
+
+      if (users.length === 0) {
+        // Don't reveal if email exists for security
+        return res.json({ 
+          message: 'If an account with that email exists, we have sent a password reset OTP' 
+        });
+      }
+
+      const user = users[0];
+
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Store OTP in database (you might want to create a password_resets table)
+      // For now, we'll store it in a simple way
+      await connection.query(
+        'UPDATE users SET password_reset_otp = ?, password_reset_otp_expiry = ? WHERE id = ?',
+        [otp, otpExpiry, user.id]
+      );
+
+      // Send OTP email
+      const { sendOTPEmail } = await import('../services/email');
+      await sendOTPEmail(email, otp);
+
+      res.json({ 
+        message: 'OTP has been sent to your email',
+        // In production, don't send OTP in response
+      });
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Reset Password - Verify OTP and update password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: 'Email, OTP, and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const connection = await pool.getConnection();
+    
+    try {
+      const [users]: any = await connection.query(
+        'SELECT * FROM users WHERE email = ?',
+        [email]
+      );
+
+      if (users.length === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      const user = users[0];
+
+      // Check OTP
+      if (user.password_reset_otp !== otp) {
+        return res.status(400).json({ message: 'Invalid OTP' });
+      }
+
+      // Check OTP expiry
+      if (!user.password_reset_otp_expiry || new Date() > new Date(user.password_reset_otp_expiry)) {
+        return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password and clear OTP
+      await connection.query(
+        'UPDATE users SET password = ?, password_reset_otp = NULL, password_reset_otp_expiry = NULL WHERE id = ?',
+        [hashedPassword, user.id]
+      );
+
+      // Log activity
+      await connection.query(
+        'INSERT INTO activity_logs (user_id, activity_type, description) VALUES (?, ?, ?)',
+        [user.id, 'password_reset', 'User reset their password']
+      );
+
+      res.json({ message: 'Password has been reset successfully' });
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

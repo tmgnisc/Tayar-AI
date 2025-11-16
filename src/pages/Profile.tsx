@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Save, Briefcase } from "lucide-react";
+import { User, Save, Briefcase, Upload, X } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/config/api";
@@ -28,6 +29,8 @@ export default function Profile() {
   const [domainId, setDomainId] = useState<string | undefined>(undefined);
   const [level, setLevel] = useState<string | undefined>(undefined);
   const [domains, setDomains] = useState<Domain[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (token && user) {
@@ -45,6 +48,7 @@ export default function Profile() {
         setName(data.user.name || "");
         setDomainId(data.user.domain_id?.toString());
         setLevel(data.user.level);
+        setAvatarUrl(data.user.avatar_url || null);
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('Profile fetch error:', errorData);
@@ -87,6 +91,108 @@ export default function Profile() {
     }
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        
+        try {
+          const response = await apiRequest('api/user/profile/upload-image', {
+            method: 'POST',
+            body: JSON.stringify({ image: base64String }),
+          }, token);
+
+          if (response.ok) {
+            const data = await response.json();
+            setAvatarUrl(data.avatar_url);
+            toast({
+              title: "Image uploaded!",
+              description: "Your profile picture has been updated.",
+            });
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            toast({
+              title: "Upload failed",
+              description: errorData.message || "Failed to upload image",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          toast({
+            title: "Error",
+            description: "Failed to upload image",
+            variant: "destructive",
+          });
+        } finally {
+          setUploadingImage(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      setUploadingImage(false);
+      toast({
+        title: "Error",
+        description: "Failed to read image file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    try {
+      const response = await apiRequest('api/user/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          avatar_url: null,
+        }),
+      }, token);
+
+      if (response.ok) {
+        setAvatarUrl(null);
+        toast({
+          title: "Image removed",
+          description: "Your profile picture has been removed.",
+        });
+      }
+    } catch (error) {
+      console.error('Error removing image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove image",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
 
@@ -97,6 +203,7 @@ export default function Profile() {
           name,
           domain_id: domainId && domainId !== "none" ? parseInt(domainId) : null,
           level: level && level !== "none" ? level : null,
+          avatar_url: avatarUrl,
         }),
       }, token);
 
@@ -167,6 +274,54 @@ export default function Profile() {
               <CardDescription>Update your name and basic information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Profile Image Upload */}
+              <div className="space-y-2">
+                <Label>Profile Picture</Label>
+                <div className="flex items-center gap-4">
+                  <Avatar className="w-20 h-20">
+                    <AvatarImage src={avatarUrl || undefined} alt={name} />
+                    <AvatarFallback className="text-lg">
+                      {name.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="avatar-upload"
+                      disabled={uploadingImage}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById('avatar-upload')?.click()}
+                      disabled={uploadingImage}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {uploadingImage ? "Uploading..." : "Upload"}
+                    </Button>
+                    {avatarUrl && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRemoveImage}
+                        disabled={uploadingImage}
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upload a profile picture (max 5MB, JPG/PNG)
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input

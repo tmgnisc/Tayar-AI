@@ -81,6 +81,7 @@ async function createTables() {
         role ENUM('user', 'admin') DEFAULT 'user',
         domain_id INT NULL,
         level ENUM('beginner', 'intermediate', 'senior', 'principal', 'lead') NULL,
+        avatar_url TEXT NULL,
         subscription_type ENUM('free', 'pro', 'enterprise') DEFAULT 'free',
         subscription_status ENUM('active', 'cancelled', 'expired') DEFAULT 'active',
         subscription_start_date DATE,
@@ -177,6 +178,19 @@ async function migrateTables() {
   const connection = await pool.getConnection();
   
   try {
+    // Add avatar_url column if it doesn't exist
+    try {
+      await connection.query(`
+        ALTER TABLE users 
+        ADD COLUMN IF NOT EXISTS avatar_url TEXT NULL
+      `);
+      console.log('✅ Added avatar_url column to users table');
+    } catch (error: any) {
+      // Column might already exist or MySQL doesn't support IF NOT EXISTS
+      if (!error.message.includes('Duplicate column name')) {
+        console.log('⚠️  Avatar URL column migration:', error.message);
+      }
+    }
     // Check if users table exists and add missing columns
     const [usersTable]: any = await connection.query(
       "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'users'"

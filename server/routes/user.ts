@@ -727,7 +727,7 @@ router.get('/profile', async (req: AuthRequest, res) => {
       
       try {
         const [result]: any = await connection.query(
-          `SELECT u.id, u.name, u.email, u.role, u.domain_id, u.level, 
+          `SELECT u.id, u.name, u.email, u.role, u.domain_id, u.level, u.avatar_url,
            u.subscription_type, u.subscription_status, u.created_at, u.last_login,
            d.id as d_id, d.name as domain_name, d.description as domain_description
           FROM users u
@@ -814,7 +814,7 @@ router.patch('/profile', async (req: AuthRequest, res) => {
   try {
     const connection = await pool.getConnection();
     const userId = req.userId!;
-    const { name, domain_id, level } = req.body;
+    const { name, domain_id, level, avatar_url } = req.body;
 
     try {
       // Build update query dynamically
@@ -850,6 +850,11 @@ router.patch('/profile', async (req: AuthRequest, res) => {
         values.push(level);
       }
 
+      if (avatar_url !== undefined) {
+        updates.push('avatar_url = ?');
+        values.push(avatar_url);
+      }
+
       if (updates.length === 0) {
         return res.status(400).json({ message: 'No fields to update' });
       }
@@ -869,7 +874,7 @@ router.patch('/profile', async (req: AuthRequest, res) => {
 
       // Get updated user
       const [users]: any = await connection.query(
-        `SELECT u.id, u.name, u.email, u.role, u.domain_id, u.level, 
+        `SELECT u.id, u.name, u.email, u.role, u.domain_id, u.level, u.avatar_url,
          u.subscription_type, u.subscription_status, u.created_at, u.last_login,
          d.id as d_id, d.name as domain_name, d.description as domain_description
          FROM users u
@@ -893,6 +898,7 @@ router.patch('/profile', async (req: AuthRequest, res) => {
             description: user.domain_description,
           } : null,
           level: user.level,
+          avatar_url: user.avatar_url,
           subscription_type: user.subscription_type,
           subscription_status: user.subscription_status,
           created_at: user.created_at,
@@ -904,6 +910,50 @@ router.patch('/profile', async (req: AuthRequest, res) => {
     }
   } catch (error: any) {
     console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Upload profile image to Cloudinary
+router.post('/profile/upload-image', async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const { image } = req.body; // Base64 image string
+
+    if (!image) {
+      return res.status(400).json({ message: 'Image is required' });
+    }
+
+    // Upload to Cloudinary
+    const { uploadImageFromBase64 } = await import('../services/cloudinary');
+    
+    try {
+      const result = await uploadImageFromBase64(image, 'sdc');
+      
+      // Update user's avatar_url in database
+      const connection = await pool.getConnection();
+      try {
+        await connection.query(
+          'UPDATE users SET avatar_url = ? WHERE id = ?',
+          [result.url, userId]
+        );
+        
+        res.json({
+          message: 'Image uploaded successfully',
+          avatar_url: result.url,
+        });
+      } finally {
+        connection.release();
+      }
+    } catch (error: any) {
+      console.error('Cloudinary upload error:', error);
+      res.status(500).json({ 
+        message: 'Failed to upload image', 
+        error: error.message 
+      });
+    }
+  } catch (error: any) {
+    console.error('Upload image error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
