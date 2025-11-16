@@ -505,13 +505,24 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
     console.error('[Start Conversation] Error details:', {
       message: error.message,
       name: error.name,
+      code: error.code,
       response: error.response?.data,
       status: error.response?.status,
     });
     
+    // Provide more specific error messages
+    let errorMessage = error.message || 'Unknown error';
+    if (error.message?.includes('keyNumber')) {
+      errorMessage = 'Configuration error: Please restart the server.';
+    } else if (error.code === 'ENOENT') {
+      errorMessage = 'Questions file not found. Please ensure interview-questions.json exists.';
+    } else if (error.message?.includes('JSON')) {
+      errorMessage = 'Invalid questions file format. Please check interview-questions.json.';
+    }
+    
     res.status(500).json({
       message: 'Failed to start interview conversation',
-      error: error.message || 'Unknown error',
+      error: errorMessage,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   } finally {
@@ -691,36 +702,10 @@ router.post('/interviews/:id/transcript', async (req: AuthRequest, res) => {
         [transcript || null, recordingUrl || null, duration || null, providedScore || null, interviewId]
       );
 
-      // Generate feedback using Groq if transcript is available
-      if (transcript) {
-        try {
-          const { generateInterviewFeedback } = await import('../services/groq');
-          const feedback = await generateInterviewFeedback(transcript, {
-            role: interview.role,
-            difficulty: interview.difficulty,
-            language: interview.language,
-          });
-
-          // Update overall score
-          await connection.query(
-            'UPDATE interviews SET overall_score = ? WHERE id = ?',
-            [feedback.overallScore, interviewId]
-          );
-
-          // Save feedback categories
-          for (const item of feedback.feedback) {
-            await connection.query(
-              `INSERT INTO interview_feedback (interview_id, category, score, feedback)
-               VALUES (?, ?, ?, ?)`,
-              [interviewId, item.category, item.score, item.comment]
-            );
-          }
-
-          console.log('✅ Interview feedback generated for interview:', interviewId);
-        } catch (error: any) {
-          console.error('Error generating feedback:', error);
-        }
-      }
+      // Note: Feedback is already calculated from static question evaluation
+      // The overallScore is provided by the frontend based on question scores
+      // No AI feedback generation needed for static interview system
+      console.log('✅ Interview transcript saved for interview:', interviewId);
 
       res.json({ message: 'Transcript saved successfully' });
     } finally {
