@@ -26,10 +26,18 @@ interface InterviewQuestions {
 function loadQuestions(): InterviewQuestions {
   try {
     const questionsPath = path.join(__dirname, '..', 'data', 'interview-questions.json');
+    console.log('[InterviewService] Loading questions from:', questionsPath);
     const fileContent = fs.readFileSync(questionsPath, 'utf-8');
-    return JSON.parse(fileContent);
-  } catch (error) {
-    console.error('Error loading questions:', error);
+    const questions = JSON.parse(fileContent);
+    console.log('[InterviewService] Successfully loaded questions. Domains:', Object.keys(questions));
+    return questions;
+  } catch (error: any) {
+    console.error('[InterviewService] Error loading questions:', error);
+    console.error('[InterviewService] Error details:', {
+      message: error.message,
+      code: error.code,
+      path: error.path,
+    });
     return {};
   }
 }
