@@ -474,18 +474,18 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
       }
     }
 
-    // Check if Gemini API key is available
-    if (!process.env.GEMINI_API_KEY) {
-      console.error('[Start Conversation] GEMINI_API_KEY not found in environment variables');
+    // Check if OpenAI API key is available
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('[Start Conversation] OPENAI_API_KEY not found in environment variables');
       return res.status(500).json({
-        message: 'Gemini API key not configured',
-        error: 'GEMINI_API_KEY environment variable is missing',
+        message: 'OpenAI API key not configured',
+        error: 'OPENAI_API_KEY environment variable is missing',
       });
     }
 
-    // Start conversation with Gemini
-    console.log('[Start Conversation] Importing Gemini service...');
-    const { startInterviewConversation, generateInterviewPrompt } = await import('../services/gemini');
+    // Start conversation with OpenAI
+    console.log('[Start Conversation] Importing OpenAI service...');
+    const { startInterviewConversation, generateInterviewPrompt } = await import('../services/openai');
     
     console.log('[Start Conversation] Generating interview prompt...');
     const systemPrompt = generateInterviewPrompt({
@@ -497,7 +497,7 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
       domainDescription: domainDescription,
     });
 
-    console.log('[Start Conversation] Starting Gemini conversation...');
+    console.log('[Start Conversation] Starting OpenAI conversation...');
       const { message, conversationId } = await startInterviewConversation(
         {
           role: interview.role,
@@ -588,8 +588,8 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         }
       }
 
-      // Continue conversation with Gemini
-      const { continueInterviewConversation, generateInterviewPrompt } = await import('../services/gemini');
+      // Continue conversation with OpenAI
+      const { continueInterviewConversation, generateInterviewPrompt } = await import('../services/openai');
       
       const systemPrompt = generateInterviewPrompt({
         role: interview.role,
@@ -659,10 +659,10 @@ router.post('/interviews/:id/transcript', async (req: AuthRequest, res) => {
         [transcript || null, recordingUrl || null, duration || null, interviewId]
       );
 
-      // Generate feedback using Gemini if transcript is available
+      // Generate feedback using OpenAI if transcript is available
       if (transcript) {
         try {
-          const { generateInterviewFeedback } = await import('../services/gemini');
+          const { generateInterviewFeedback } = await import('../services/openai');
           const feedback = await generateInterviewFeedback(transcript, {
             role: interview.role,
             difficulty: interview.difficulty,
