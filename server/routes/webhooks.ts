@@ -1,6 +1,6 @@
 import express from 'express';
 import { pool } from '../config/database';
-import { generateInterviewFeedback } from '../services/openai';
+import { generateInterviewFeedback } from '../services/groq';
 
 const router = express.Router();
 
