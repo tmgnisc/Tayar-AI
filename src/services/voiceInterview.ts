@@ -20,6 +20,13 @@ export class VoiceInterviewService {
   constructor(callbacks: VoiceInterviewCallbacks = {}) {
     this.callbacks = callbacks;
     this.synthesis = window.speechSynthesis;
+    
+    // Load voices when they become available
+    if (this.synthesis.onvoiceschanged !== undefined) {
+      this.synthesis.onvoiceschanged = () => {
+        // Voices loaded
+      };
+    }
 
     // Initialize Speech Recognition (Web Speech API)
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -130,9 +137,31 @@ export class VoiceInterviewService {
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
-      utterance.rate = 0.9; // Slightly slower for clarity
+      utterance.rate = 0.85; // Slightly slower for clarity and better understanding
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
+      
+      // Try to use a better voice if available
+      // Voices might not be loaded immediately, so we try to get them
+      let voices = this.synthesis.getVoices();
+      
+      // If no voices available, wait a bit and try again
+      if (voices.length === 0) {
+        // Voices might load asynchronously
+        voices = this.synthesis.getVoices();
+      }
+      
+      if (voices.length > 0) {
+        // Prefer clearer voices for interview
+        const preferredVoice = voices.find(voice => 
+          voice.lang.startsWith('en') && 
+          (voice.name.includes('Female') || voice.name.includes('Zira') || voice.name.includes('Samantha') || voice.name.includes('Google'))
+        ) || voices.find(voice => voice.lang.startsWith('en-US'));
+        
+        if (preferredVoice) {
+          utterance.voice = preferredVoice;
+        }
+      }
 
       utterance.onstart = () => {
         this.isSpeaking = true;

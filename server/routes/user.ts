@@ -474,47 +474,30 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
       }
     }
 
-    // Check if Groq API key is available
-    if (!process.env.GROQ_API_KEY) {
-      console.error('[Start Conversation] GROQ_API_KEY not found in environment variables');
-      return res.status(500).json({
-        message: 'Groq API key not configured',
-        error: 'GROQ_API_KEY environment variable is missing',
+    // Get first question from static JSON data
+    console.log('[Start Conversation] Loading questions from JSON...');
+    const { getFirstQuestion, getGreetingMessage } = await import('../services/interviewService');
+    
+    const firstQuestion = getFirstQuestion(domainName || interview.role, interview.difficulty);
+    
+    if (!firstQuestion) {
+      return res.status(404).json({
+        message: 'No questions found for this domain and level',
+        error: `No questions available for ${domainName || interview.role} at ${interview.difficulty} level`,
       });
     }
 
-    // Start conversation with Groq (free AI API)
-    console.log('[Start Conversation] Importing Groq service...');
-    const { startInterviewConversation, generateInterviewPrompt } = await import('../services/groq');
-    
-    console.log('[Start Conversation] Generating interview prompt...');
-    const systemPrompt = generateInterviewPrompt({
-      role: interview.role,
-      difficulty: interview.difficulty,
-      language: interview.language || 'english',
-      userName: userName,
-      domainName: domainName,
-      domainDescription: domainDescription,
-    });
+    const greeting = getGreetingMessage(userName, domainName, interview.difficulty);
+    const message = `${greeting} ${firstQuestion.question}`;
+    const conversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    console.log('[Start Conversation] Starting Groq conversation...');
-      const { message, conversationId } = await startInterviewConversation(
-        {
-          role: interview.role,
-          difficulty: interview.difficulty,
-          language: interview.language || 'english',
-          userName: userName,
-          domainName: domainName,
-          domainDescription: domainDescription,
-        },
-        systemPrompt
-      );
-
-    console.log(`[Start Conversation] Success! Conversation ID: ${conversationId}`);
+    console.log(`[Start Conversation] Success! Question ID: ${firstQuestion.id}`);
 
     res.json({
       message,
       conversationId,
+      questionId: firstQuestion.id,
+      question: firstQuestion.question,
     });
   } catch (error: any) {
     console.error('[Start Conversation] Error:', error);
@@ -588,32 +571,79 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         }
       }
 
-      // Continue conversation with Groq (free AI API)
-      const { continueInterviewConversation, generateInterviewPrompt } = await import('../services/groq');
+      // Process answer and get next question from static JSON
+      const { getNextQuestion, evaluateAnswer, getQuestions } = await import('../services/interviewService');
       
-      const systemPrompt = generateInterviewPrompt({
-        role: interview.role,
-        difficulty: interview.difficulty,
-        language: interview.language || 'english',
-        userName: userName,
-        domainName: domainName,
-        domainDescription: domainDescription,
-      });
+      // Get the last user message (their answer)
+      const lastUserMessage = conversationHistory
+        .filter(msg => msg.role === 'user')
+        .pop()?.text || '';
+      
+      // Get the last question ID from conversation history
+      // We'll need to track this - for now, get it from the request or conversation
+      const { currentQuestionId } = req.body;
+      
+      if (!currentQuestionId) {
+        return res.status(400).json({ 
+          message: 'Current question ID is required',
+          error: 'Please provide currentQuestionId in the request body'
+        });
+      }
 
-      const message = await continueInterviewConversation(
-        {
-          role: interview.role,
-          difficulty: interview.difficulty,
-          language: interview.language || 'english',
-          userName: userName,
-          domainName: domainName,
-          domainDescription: domainDescription,
-        },
-        conversationHistory,
-        systemPrompt
+      // Get current question to evaluate answer
+      const questions = getQuestions(domainName || interview.role, interview.difficulty);
+      const currentQuestion = questions.find(q => q.id === currentQuestionId);
+      
+      if (!currentQuestion) {
+        return res.status(404).json({ 
+          message: 'Question not found',
+          error: `Question with ID ${currentQuestionId} not found`
+        });
+      }
+
+      // Evaluate the answer
+      const evaluation = evaluateAnswer(
+        lastUserMessage,
+        currentQuestion.expectedAnswers,
+        currentQuestion.keywords
       );
 
-      res.json({ message });
+      // Get next question
+      const nextQuestion = getNextQuestion(
+        domainName || interview.role,
+        interview.difficulty,
+        currentQuestionId
+      );
+
+      if (!nextQuestion) {
+        // Interview is complete
+        res.json({
+          message: "Thank you for your time today! You've completed all the questions. Great job on the interview practice!",
+          questionId: null,
+          evaluation: {
+            score: evaluation.score,
+            feedback: evaluation.feedback,
+          },
+          interviewComplete: true,
+        });
+        return;
+      }
+
+      // Provide feedback and ask next question
+      const feedbackMessage = evaluation.feedback;
+      const nextQuestionMessage = nextQuestion.question;
+      const message = `${feedbackMessage} ${nextQuestion.question}`;
+
+      res.json({
+        message,
+        questionId: nextQuestion.id,
+        question: nextQuestion.question,
+        evaluation: {
+          score: evaluation.score,
+          feedback: evaluation.feedback,
+        },
+        interviewComplete: false,
+      });
     } finally {
       connection.release();
     }
@@ -646,6 +676,7 @@ router.post('/interviews/:id/transcript', async (req: AuthRequest, res) => {
       }
 
       const interview = interviews[0];
+      const { overallScore: providedScore } = req.body;
 
       // Update interview with transcript
       await connection.query(
@@ -653,10 +684,11 @@ router.post('/interviews/:id/transcript', async (req: AuthRequest, res) => {
          SET conversation_transcript = ?,
              vapi_recording_url = ?,
              duration_minutes = ?,
+             overall_score = ?,
              completed_at = NOW(),
              status = 'completed'
          WHERE id = ?`,
-        [transcript || null, recordingUrl || null, duration || null, interviewId]
+        [transcript || null, recordingUrl || null, duration || null, providedScore || null, interviewId]
       );
 
       // Generate feedback using Groq if transcript is available

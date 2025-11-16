@@ -21,6 +21,8 @@ export default function InterviewSession() {
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
+  const [questionScores, setQuestionScores] = useState<Array<{ questionId: number; score: number }>>([]);
   const voiceServiceRef = useRef<VoiceInterviewService | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -145,6 +147,12 @@ export default function InterviewSession() {
 
       const data = await response.json();
       const firstMessage = data.message;
+      const questionId = data.questionId;
+
+      // Store current question ID
+      if (questionId) {
+        setCurrentQuestionId(questionId);
+      }
 
       // Add assistant message to history
       voiceService.addAssistantMessage(firstMessage);
@@ -174,7 +182,7 @@ export default function InterviewSession() {
   };
 
   const handleUserAnswer = async (userAnswer: string) => {
-    if (!interviewId || !token || !voiceServiceRef.current) return;
+    if (!interviewId || !token || !voiceServiceRef.current || !currentQuestionId) return;
 
     try {
       setIsProcessing(true);
@@ -183,12 +191,15 @@ export default function InterviewSession() {
       // Get conversation history
       const conversationHistory = voiceServiceRef.current.getConversationHistory();
 
-      // Send to backend to get next question
+      // Send to backend to evaluate answer and get next question
       const response = await apiRequest(
         `api/user/interviews/${interviewId}/continue-conversation`,
         {
           method: 'POST',
-          body: JSON.stringify({ conversationHistory }),
+          body: JSON.stringify({ 
+            conversationHistory,
+            currentQuestionId: currentQuestionId,
+          }),
         },
         token
       );
@@ -199,14 +210,32 @@ export default function InterviewSession() {
 
       const data = await response.json();
       const nextMessage = data.message;
+      const nextQuestionId = data.questionId;
+      const evaluation = data.evaluation;
+      const interviewComplete = data.interviewComplete;
+
+      // Store score for current question
+      if (evaluation && evaluation.score !== undefined) {
+        setQuestionScores(prev => [...prev, { questionId: currentQuestionId, score: evaluation.score }]);
+        
+        // Show score feedback
+        toast({
+          title: `Score: ${evaluation.score}/100`,
+          description: evaluation.feedback,
+          variant: evaluation.score >= 60 ? "default" : "destructive",
+        });
+      }
 
       // Add assistant message to history
       voiceServiceRef.current.addAssistantMessage(nextMessage);
 
-      // Check if interview is ending
-      const lowerMessage = nextMessage.toLowerCase();
-      if (lowerMessage.includes('thank you') && 
-          (lowerMessage.includes('good luck') || lowerMessage.includes('practice'))) {
+      // Update current question ID
+      if (nextQuestionId) {
+        setCurrentQuestionId(nextQuestionId);
+      }
+
+      // Check if interview is complete
+      if (interviewComplete) {
         // Interview is ending
         await voiceServiceRef.current.speak(nextMessage);
         setTimeout(() => {
@@ -239,6 +268,11 @@ export default function InterviewSession() {
         // Get transcript
         const fullTranscript = voiceServiceRef.current.getTranscript();
         
+        // Calculate overall score from question scores
+        const overallScore = questionScores.length > 0
+          ? Math.round(questionScores.reduce((sum, q) => sum + q.score, 0) / questionScores.length)
+          : 0;
+        
         // End voice service
         voiceServiceRef.current.end();
 
@@ -252,6 +286,7 @@ export default function InterviewSession() {
                 body: JSON.stringify({
                   transcript: fullTranscript,
                   duration: Math.floor(duration / 60), // duration in minutes
+                  overallScore: overallScore, // Include calculated score
                 }),
               },
               token
@@ -260,7 +295,7 @@ export default function InterviewSession() {
             if (response.ok) {
               toast({
                 title: "Interview Completed",
-                description: "Your interview has been saved. Redirecting to results...",
+                description: `Your interview has been saved. Overall Score: ${overallScore}/100. Redirecting to results...`,
               });
             }
           } catch (error) {
