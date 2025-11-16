@@ -22,6 +22,7 @@ export default function InterviewSession() {
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
   const [isAnswering, setIsAnswering] = useState(false);
   const [localVideoStream, setLocalVideoStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -163,11 +164,17 @@ export default function InterviewSession() {
 
       const data = await response.json();
       const firstMessage = data.message;
+      const questionId = data.questionId;
+
+      // Store current question ID
+      if (questionId) {
+        setCurrentQuestionId(questionId);
+      }
 
       // Add assistant message to history
       voiceService.addAssistantMessage(firstMessage);
 
-      // Speak the first question (Gemini will greet and ask first question)
+      // Speak the first question
       await voiceService.speak(firstMessage);
 
       setInterviewStatus('active');
@@ -188,7 +195,7 @@ export default function InterviewSession() {
   };
 
   const handleDoneAnswering = async () => {
-    if (!interviewId || !token || !voiceServiceRef.current || !isAnswering) return;
+    if (!interviewId || !token || !voiceServiceRef.current || !currentQuestionId || !isAnswering) return;
 
     setIsAnswering(false);
     setIsProcessing(true);
@@ -210,35 +217,42 @@ export default function InterviewSession() {
   };
 
   const processAnswer = async () => {
-    if (!interviewId || !token || !voiceServiceRef.current) return;
+    if (!interviewId || !token || !voiceServiceRef.current || !currentQuestionId) return;
 
     try {
 
       // Get conversation history
       const conversationHistory = voiceServiceRef.current.getConversationHistory();
 
-      // Send to backend - Gemini will naturally continue the conversation
+      // Send to backend to evaluate answer and get next question
       const response = await apiRequest(
         `api/user/interviews/${interviewId}/continue-conversation`,
         {
           method: 'POST',
           body: JSON.stringify({ 
             conversationHistory,
+            currentQuestionId: currentQuestionId,
           }),
         },
         token
       );
 
       if (!response.ok) {
-        throw new Error('Failed to continue conversation');
+        throw new Error('Failed to get next question');
       }
 
       const data = await response.json();
       const nextMessage = data.message;
+      const nextQuestionId = data.questionId;
       const interviewComplete = data.interviewComplete;
 
       // Add assistant message to history
       voiceServiceRef.current.addAssistantMessage(nextMessage);
+
+      // Update current question ID
+      if (nextQuestionId) {
+        setCurrentQuestionId(nextQuestionId);
+      }
 
       // Check if interview is complete
       if (interviewComplete) {
@@ -248,7 +262,7 @@ export default function InterviewSession() {
           handleEndInterview();
         }, 3000);
       } else {
-        // Speak the next response/question from Gemini
+        // Speak the next question
         await voiceServiceRef.current.speak(nextMessage);
         // Reset answering state for the next question
         setIsAnswering(false);
