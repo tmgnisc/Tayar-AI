@@ -118,20 +118,25 @@ export default function Profile() {
 
     setUploadingImage(true);
 
+    console.log('[Profile] Selected file', { name: file.name, size: file.size, type: file.type });
+
     try {
       // Convert to base64
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64String = reader.result as string;
+        console.log('[Profile] Base64 length', base64String?.length);
         
         try {
           const response = await apiRequest('api/user/profile/upload-image', {
             method: 'POST',
             body: JSON.stringify({ image: base64String }),
           }, token);
+          console.log('[Profile] Upload response status', response.status);
 
           if (response.ok) {
             const data = await response.json();
+            console.log('[Profile] Upload response data', data);
             setAvatarUrl(data.avatar_url);
             updateUser({ avatar_url: data.avatar_url });
             toast({
@@ -140,6 +145,7 @@ export default function Profile() {
             });
           } else {
             const errorData = await response.json().catch(() => ({}));
+            console.error('[Profile] Upload failed', errorData);
             toast({
               title: "Upload failed",
               description: errorData.message || "Failed to upload image",

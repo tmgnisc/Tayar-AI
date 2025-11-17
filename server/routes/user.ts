@@ -1126,6 +1126,8 @@ router.post('/profile/upload-image', async (req: AuthRequest, res) => {
     const userId = req.userId!;
     const { image } = req.body; // Base64 image string
 
+    console.log('[UploadImage] Incoming request', { userId, hasImage: !!image, length: image?.length });
+
     if (!image) {
       return res.status(400).json({ message: 'Image is required' });
     }
@@ -1144,14 +1146,19 @@ router.post('/profile/upload-image', async (req: AuthRequest, res) => {
     
     try {
       const result = await uploadImageFromBase64(image, 'sdc');
+      console.log('[UploadImage] Cloudinary upload success', { url: result.url, public_id: result.public_id });
       
       // Update user's avatar_url in database
       const connection = await pool.getConnection();
       try {
-        await connection.query(
+        const [updateResult]: any = await connection.query(
           'UPDATE users SET avatar_url = ? WHERE id = ?',
           [result.url, userId]
         );
+        console.log('[UploadImage] DB update result', updateResult);
+        if (updateResult.affectedRows === 0) {
+          console.warn('[UploadImage] Warning: no rows updated. Check userId/database configuration.');
+        }
         
         res.json({
           message: 'Image uploaded successfully',
@@ -1161,14 +1168,14 @@ router.post('/profile/upload-image', async (req: AuthRequest, res) => {
         connection.release();
       }
     } catch (error: any) {
-      console.error('Cloudinary upload error:', error);
+      console.error('[UploadImage] Cloudinary upload error:', error);
       res.status(500).json({ 
         message: 'Failed to upload image', 
         error: error.message 
       });
     }
   } catch (error: any) {
-    console.error('Upload image error:', error);
+    console.error('[UploadImage] Unexpected error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
