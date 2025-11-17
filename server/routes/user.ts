@@ -583,7 +583,7 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
       }
 
       // Process answer and get next question from static JSON
-      const { getNextQuestion, evaluateAnswer, getQuestions } = await import('../services/interviewService');
+      const { getNextQuestionByKeywords, evaluateAnswer, getQuestions } = await import('../services/interviewService');
       
       // Get the last user message (their answer)
       const lastUserMessage = conversationHistory
@@ -618,11 +618,12 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         currentQuestion.keywords
       );
 
-      // Get next question
-      const nextQuestion = getNextQuestion(
+      // Get next question based on keywords in user's answer (keyword-based routing)
+      const nextQuestion = getNextQuestionByKeywords(
         domainName || interview.role,
         interview.difficulty,
-        currentQuestionId
+        currentQuestionId,
+        lastUserMessage
       );
 
       if (!nextQuestion) {

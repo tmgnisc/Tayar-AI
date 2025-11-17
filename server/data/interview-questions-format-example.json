@@ -1,0 +1,127 @@
+{
+    "frontend": {
+      "beginner": [
+        {
+          "id": 1,
+          "question": "What is HTML and why is it used?",
+          "expectedSummary": "HTML is the standard markup language used to structure content on the web.",
+          "keywords": ["html", "markup", "structure", "webpage", "elements", "tags"],
+          "routing": {
+            "css": 2,
+            "style": 2,
+            "design": 2,
+            "head": 1,
+            "body": 1
+          },
+          "defaultNext": 2,
+          "lowKnowledgePhrases": [
+            "i don't know",
+            "sorry",
+            "i haven't read about this",
+            "i haven't studied this",
+            "i haven't done this part",
+            "not sure",
+            "no idea"
+          ],
+          "systemReplyOnLowKnowledge": "That's okay. HTML is mainly used to structure the content of a webpage. Let's move to something simpler."
+        },
+  
+        {
+          "id": 2,
+          "question": "What is CSS and what does it do?",
+          "expectedSummary": "CSS is used to style and layout web pages, including colors, fonts, spacing, and layouts.",
+          "keywords": ["css", "style", "layout", "design", "colors", "fonts", "styling"],
+          "routing": {
+            "responsive": 3,
+            "flexbox": 3,
+            "grid": 3,
+            "html": 1
+          },
+          "defaultNext": 3,
+          "lowKnowledgePhrases": [
+            "i don't know",
+            "sorry",
+            "i haven't read about this",
+            "i haven't studied this",
+            "i haven't done this part",
+            "not sure",
+            "no idea"
+          ],
+          "systemReplyOnLowKnowledge": "No worries. CSS is what makes a webpage look good. Let’s continue to the next topic."
+        },
+  
+        {
+          "id": 3,
+          "question": "What is JavaScript and why is it important?",
+          "expectedSummary": "JavaScript is a programming language that makes websites interactive and dynamic.",
+          "keywords": ["javascript", "programming", "interactive", "dynamic", "logic", "frontend"],
+          "routing": {
+            "variables": 4,
+            "let": 4,
+            "const": 4,
+            "functions": 4,
+            "dom": 5
+          },
+          "defaultNext": 4,
+          "lowKnowledgePhrases": [
+            "i don't know",
+            "sorry",
+            "i haven't read about this",
+            "i haven't studied this",
+            "i haven't done this part",
+            "not sure",
+            "no idea"
+          ],
+          "systemReplyOnLowKnowledge": "That's alright. JavaScript brings life to websites. Let’s move to an easier question."
+        },
+  
+        {
+          "id": 4,
+          "question": "What are variables in JavaScript?",
+          "expectedSummary": "Variables store data values. They can be created using var, let, or const.",
+          "keywords": ["variable", "var", "let", "const", "value", "store", "data"],
+          "routing": {
+            "function": 5,
+            "dom": 5,
+            "event": 5
+          },
+          "defaultNext": 5,
+          "lowKnowledgePhrases": [
+            "i don't know",
+            "sorry",
+            "i haven't read about this",
+            "i haven't studied this",
+            "i haven't done this part",
+            "not sure",
+            "no idea"
+          ],
+          "systemReplyOnLowKnowledge": "It’s okay. Variables simply hold data values. Let’s try another question."
+        },
+  
+        {
+          "id": 5,
+          "question": "What is the DOM and how is it used?",
+          "expectedSummary": "The DOM is the Document Object Model; it's a structure that allows JavaScript to access and manipulate HTML elements.",
+          "keywords": ["dom", "document object model", "html", "elements", "manipulate", "javascript"],
+          "routing": {
+            "event": 6,
+            "click": 6,
+            "react": 6,
+            "framework": 6
+          },
+          "defaultNext": null,
+          "lowKnowledgePhrases": [
+            "i don't know",
+            "sorry",
+            "i haven't read about this",
+            "i haven't studied this",
+            "i haven't done this part",
+            "not sure",
+            "no idea"
+          ],
+          "systemReplyOnLowKnowledge": "No problem. The DOM lets JavaScript interact with the webpage. Good effort!"
+        }
+      ]
+    }
+  }
+  

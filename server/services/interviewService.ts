@@ -12,6 +12,8 @@ interface Question {
   expectedAnswers: string[];
   keywords: string[];
   followUp?: string;
+  routeKeywords?: { [keyword: string]: number }; // Maps keywords to next question IDs
+  defaultNextQuestionId?: number; // Default next question if no keywords match
 }
 
 interface InterviewQuestions {
@@ -137,7 +139,66 @@ export function evaluateAnswer(
 }
 
 /**
- * Get next question in sequence
+ * Get next question based on keywords in user's answer (keyword-based routing)
+ * If no keywords match, falls back to defaultNextQuestionId or sequential order
+ */
+export function getNextQuestionByKeywords(
+  domain: string,
+  level: string,
+  currentQuestionId: number,
+  userAnswer: string
+): Question | null {
+  const questions = getQuestions(domain, level);
+  const currentQuestion = questions.find(q => q.id === currentQuestionId);
+  
+  if (!currentQuestion) {
+    return null;
+  }
+
+  // If routeKeywords exist, check user's answer for matching keywords
+  if (currentQuestion.routeKeywords && userAnswer) {
+    const answerLower = userAnswer.toLowerCase();
+    const matchedKeywords: Array<{ keyword: string; questionId: number }> = [];
+
+    // Check each route keyword
+    for (const [keyword, questionId] of Object.entries(currentQuestion.routeKeywords)) {
+      // Check if keyword appears in the answer (case-insensitive, whole word or phrase)
+      const keywordLower = keyword.toLowerCase();
+      // Match whole word or phrase
+      const keywordRegex = new RegExp(`\\b${keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      if (keywordRegex.test(answerLower) || answerLower.includes(keywordLower)) {
+        matchedKeywords.push({ keyword, questionId });
+      }
+    }
+
+    // If keywords matched, find the question with the highest priority (first match)
+    if (matchedKeywords.length > 0) {
+      // Get the first matched keyword's question (you can implement priority logic here)
+      const targetQuestionId = matchedKeywords[0].questionId;
+      const nextQuestion = questions.find(q => q.id === targetQuestionId);
+      
+      if (nextQuestion) {
+        console.log(`[InterviewService] Keyword-based routing: "${matchedKeywords[0].keyword}" -> Question ${targetQuestionId}`);
+        return nextQuestion;
+      }
+    }
+  }
+
+  // Fallback to defaultNextQuestionId if specified
+  if (currentQuestion.defaultNextQuestionId !== undefined) {
+    const defaultQuestion = questions.find(q => q.id === currentQuestion.defaultNextQuestionId);
+    if (defaultQuestion) {
+      console.log(`[InterviewService] Using defaultNextQuestionId: ${currentQuestion.defaultNextQuestionId}`);
+      return defaultQuestion;
+    }
+  }
+
+  // Final fallback: sequential order
+  return getNextQuestion(domain, level, currentQuestionId);
+}
+
+/**
+ * Get next question in sequence (fallback method)
  */
 export function getNextQuestion(
   domain: string,

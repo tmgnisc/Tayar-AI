@@ -3,230 +3,124 @@
     "beginner": [
       {
         "id": 1,
-        "question": "What is React and why would you use it?",
-        "expectedAnswers": [
-          "React is a JavaScript library for building user interfaces",
-          "It's a frontend framework for creating interactive web applications",
-          "React helps build reusable components",
-          "It uses a virtual DOM for better performance",
-          "React makes it easier to manage UI state"
+        "question": "What is HTML and why is it used?",
+        "expectedSummary": "HTML is the standard markup language used to structure content on the web.",
+        "keywords": ["html", "markup", "structure", "webpage", "elements", "tags"],
+        "routing": {
+          "css": 2,
+          "style": 2,
+          "design": 2,
+          "head": 1,
+          "body": 1
+        },
+        "defaultNext": 2,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "i haven't read about this",
+          "i haven't studied this",
+          "i haven't done this part",
+          "not sure",
+          "no idea"
         ],
-        "keywords": ["react", "library", "ui", "components", "javascript", "framework", "virtual dom"],
-        "followUp": "Can you explain what JSX is?"
+        "systemReplyOnLowKnowledge": "That's okay. HTML is mainly used to structure the content of a webpage. Let's move to something simpler."
       },
+
       {
         "id": 2,
-        "question": "Explain the difference between state and props in React.",
-        "expectedAnswers": [
-          "State is internal data that can change in a component",
-          "Props are data passed from parent to child components",
-          "State is mutable, props are immutable",
-          "State is managed within the component, props come from outside",
-          "You can update state with setState, but props are read-only"
+        "question": "What is CSS and what does it do?",
+        "expectedSummary": "CSS is used to style and layout web pages, including colors, fonts, spacing, and layouts.",
+        "keywords": ["css", "style", "layout", "design", "colors", "fonts", "styling"],
+        "routing": {
+          "responsive": 3,
+          "flexbox": 3,
+          "grid": 3,
+          "html": 1
+        },
+        "defaultNext": 3,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "i haven't read about this",
+          "i haven't studied this",
+          "i haven't done this part",
+          "not sure",
+          "no idea"
         ],
-        "keywords": ["state", "props", "mutable", "immutable", "component", "setState"],
-        "followUp": "When would you use state versus props?"
+        "systemReplyOnLowKnowledge": "No worries. CSS is what makes a webpage look good. Let’s continue to the next topic."
       },
+
       {
         "id": 3,
-        "question": "What is the DOM and how does React interact with it?",
-        "expectedAnswers": [
-          "DOM stands for Document Object Model",
-          "It's a representation of HTML elements in the browser",
-          "React uses a virtual DOM for efficiency",
-          "React compares virtual DOM with real DOM and updates only what changed",
-          "This makes React faster than directly manipulating the DOM"
+        "question": "What is JavaScript and why is it important?",
+        "expectedSummary": "JavaScript is a programming language that makes websites interactive and dynamic.",
+        "keywords": ["javascript", "programming", "interactive", "dynamic", "logic", "frontend"],
+        "routing": {
+          "variables": 4,
+          "let": 4,
+          "const": 4,
+          "functions": 4,
+          "dom": 5
+        },
+        "defaultNext": 4,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "i haven't read about this",
+          "i haven't studied this",
+          "i haven't done this part",
+          "not sure",
+          "no idea"
         ],
-        "keywords": ["dom", "virtual dom", "browser", "html", "elements", "update", "render"],
-        "followUp": "What are the benefits of using a virtual DOM?"
+        "systemReplyOnLowKnowledge": "That's alright. JavaScript brings life to websites. Let’s move to an easier question."
       },
+
       {
         "id": 4,
-        "question": "Can you explain what CSS flexbox is used for?",
-        "expectedAnswers": [
-          "Flexbox is a CSS layout method",
-          "It helps arrange elements in rows or columns",
-          "It makes responsive design easier",
-          "You can align and distribute space between items",
-          "It's useful for centering content and creating flexible layouts"
+        "question": "What are variables in JavaScript?",
+        "expectedSummary": "Variables store data values. They can be created using var, let, or const.",
+        "keywords": ["variable", "var", "let", "const", "value", "store", "data"],
+        "routing": {
+          "function": 5,
+          "dom": 5,
+          "event": 5
+        },
+        "defaultNext": 5,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "i haven't read about this",
+          "i haven't studied this",
+          "i haven't done this part",
+          "not sure",
+          "no idea"
         ],
-        "keywords": ["flexbox", "css", "layout", "responsive", "align", "flex", "container"],
-        "followUp": "What's the difference between flexbox and CSS Grid?"
+        "systemReplyOnLowKnowledge": "It’s okay. Variables simply hold data values. Let’s try another question."
       },
+
       {
         "id": 5,
-        "question": "What is the difference between let, const, and var in JavaScript?",
-        "expectedAnswers": [
-          "var is function-scoped and can be redeclared",
-          "let is block-scoped and can be reassigned",
-          "const is block-scoped and cannot be reassigned",
-          "let and const are ES6 features, var is older",
-          "const is used for values that shouldn't change"
+        "question": "What is the DOM and how is it used?",
+        "expectedSummary": "The DOM is the Document Object Model; it's a structure that allows JavaScript to access and manipulate HTML elements.",
+        "keywords": ["dom", "document object model", "html", "elements", "manipulate", "javascript"],
+        "routing": {
+          "event": 6,
+          "click": 6,
+          "react": 6,
+          "framework": 6
+        },
+        "defaultNext": null,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "i haven't read about this",
+          "i haven't studied this",
+          "i haven't done this part",
+          "not sure",
+          "no idea"
         ],
-        "keywords": ["let", "const", "var", "scope", "block", "function", "es6", "reassign"],
-        "followUp": "When would you use const versus let?"
-      }
-    ],
-    "intermediate": [
-      {
-        "id": 1,
-        "question": "How would you optimize a React application for performance?",
-        "expectedAnswers": [
-          "Use React.memo to prevent unnecessary re-renders",
-          "Implement code splitting and lazy loading",
-          "Use useMemo and useCallback hooks",
-          "Optimize images and assets",
-          "Implement virtual scrolling for long lists",
-          "Use production builds and minification"
-        ],
-        "keywords": ["optimize", "performance", "memo", "code splitting", "lazy loading", "useMemo", "useCallback", "virtual scrolling"],
-        "followUp": "Can you explain how React.memo works?"
-      },
-      {
-        "id": 2,
-        "question": "Explain React hooks and when you would use useEffect versus useState.",
-        "expectedAnswers": [
-          "Hooks are functions that let you use state and lifecycle in functional components",
-          "useState manages component state",
-          "useEffect handles side effects like API calls",
-          "useEffect runs after render, useState updates state",
-          "useEffect can have dependencies to control when it runs"
-        ],
-        "keywords": ["hooks", "usestate", "useeffect", "functional components", "side effects", "lifecycle", "dependencies"],
-        "followUp": "What are the rules of hooks?"
-      },
-      {
-        "id": 3,
-        "question": "How do you handle state management in a large React application?",
-        "expectedAnswers": [
-          "Use Context API for global state",
-          "Consider Redux or Zustand for complex state",
-          "Lift state up to common parent components",
-          "Use custom hooks to share state logic",
-          "Consider state management libraries for large apps"
-        ],
-        "keywords": ["state management", "context api", "redux", "zustand", "global state", "custom hooks"],
-        "followUp": "When would you choose Redux over Context API?"
-      }
-    ],
-    "advanced": [
-      {
-        "id": 1,
-        "question": "How would you architect a large-scale React application with multiple teams?",
-        "expectedAnswers": [
-          "Use micro-frontends architecture",
-          "Implement design systems and component libraries",
-          "Set up monorepo structure",
-          "Establish coding standards and conventions",
-          "Use feature-based folder structure",
-          "Implement proper testing strategies"
-        ],
-        "keywords": ["architecture", "micro-frontends", "design system", "monorepo", "scalability", "teams", "structure"],
-        "followUp": "What are the challenges of micro-frontends?"
-      },
-      {
-        "id": 2,
-        "question": "Explain your approach to code splitting and lazy loading.",
-        "expectedAnswers": [
-          "Use React.lazy for component-level code splitting",
-          "Implement route-based code splitting",
-          "Use dynamic imports for on-demand loading",
-          "Optimize bundle sizes",
-          "Implement loading states for lazy components"
-        ],
-        "keywords": ["code splitting", "lazy loading", "react.lazy", "dynamic imports", "bundle", "optimization"],
-        "followUp": "How do you handle error boundaries with lazy loading?"
-      }
-    ]
-  },
-  "backend": {
-    "beginner": [
-      {
-        "id": 1,
-        "question": "What is an API and how does it work?",
-        "expectedAnswers": [
-          "API stands for Application Programming Interface",
-          "It's a way for different applications to communicate",
-          "APIs use HTTP requests like GET and POST",
-          "They return data in formats like JSON",
-          "APIs allow frontend and backend to exchange information"
-        ],
-        "keywords": ["api", "application programming interface", "http", "json", "communication", "request", "response"],
-        "followUp": "What's the difference between REST and GraphQL?"
-      },
-      {
-        "id": 2,
-        "question": "Explain the difference between GET and POST requests.",
-        "expectedAnswers": [
-          "GET is used to retrieve data",
-          "POST is used to create or send data",
-          "GET requests are idempotent, POST is not",
-          "GET parameters are in URL, POST data is in body",
-          "GET is cacheable, POST typically is not"
-        ],
-        "keywords": ["get", "post", "http", "request", "retrieve", "create", "idempotent", "cache"],
-        "followUp": "When would you use PUT versus PATCH?"
-      },
-      {
-        "id": 3,
-        "question": "What is a database and why do we need it?",
-        "expectedAnswers": [
-          "A database stores and organizes data",
-          "It provides persistent storage",
-          "Databases allow efficient querying and retrieval",
-          "They ensure data integrity and relationships",
-          "They support concurrent access and transactions"
-        ],
-        "keywords": ["database", "storage", "data", "query", "persistent", "integrity", "transactions"],
-        "followUp": "What's the difference between SQL and NoSQL databases?"
-      }
-    ],
-    "intermediate": [
-      {
-        "id": 1,
-        "question": "How would you design a RESTful API for a social media platform?",
-        "expectedAnswers": [
-          "Use resource-based URLs like /users, /posts",
-          "Implement proper HTTP methods for each operation",
-          "Use status codes correctly",
-          "Implement pagination for large datasets",
-          "Add authentication and authorization",
-          "Version the API"
-        ],
-        "keywords": ["restful", "api", "design", "http methods", "status codes", "pagination", "authentication", "versioning"],
-        "followUp": "How would you handle API versioning?"
-      },
-      {
-        "id": 2,
-        "question": "Explain database indexing and why it's important.",
-        "expectedAnswers": [
-          "Indexes speed up database queries",
-          "They're like a table of contents for the database",
-          "Indexes are created on frequently queried columns",
-          "They improve SELECT query performance",
-          "But they slow down INSERT and UPDATE operations"
-        ],
-        "keywords": ["indexing", "database", "performance", "query", "optimization", "speed"],
-        "followUp": "When would you not want to use an index?"
-      }
-    ]
-  },
-  "mern": {
-    "beginner": [
-      {
-        "id": 1,
-        "question": "What is the MERN stack and what does each component do?",
-        "expectedAnswers": [
-          "MERN stands for MongoDB, Express, React, and Node.js",
-          "MongoDB is the database",
-          "Express is the web framework for Node.js",
-          "React is the frontend library",
-          "Node.js is the JavaScript runtime for the backend"
-        ],
-        "keywords": ["mern", "mongodb", "express", "react", "node.js", "stack", "full stack"],
-        "followUp": "What are the advantages of using the MERN stack?"
+        "systemReplyOnLowKnowledge": "No problem. The DOM lets JavaScript interact with the webpage. Good effort!"
       }
     ]
   }
 }
-
