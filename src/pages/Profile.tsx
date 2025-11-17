@@ -50,6 +50,7 @@ export default function Profile() {
         setLevel(data.user.level);
         setAvatarUrl(data.user.avatar_url || null);
         updateUser(data.user);
+        updateUser(data.user);
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('Profile fetch error:', errorData);
