@@ -33,12 +33,12 @@ export default function Profile() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
-    if (token && user) {
-      console.log('[Profile] useEffect init', { tokenPresent: !!token, user });
+    if (token) {
+      console.log('[Profile] useEffect init', { tokenPresent: !!token });
       fetchProfile();
       fetchDomains();
     }
-  }, [token, user]);
+  }, [token]);
 
   useEffect(() => {
     console.log('[Profile] avatarUrl state changed', avatarUrl);
@@ -50,12 +50,16 @@ export default function Profile() {
       if (response.ok) {
         const data = await response.json();
         console.log('[Profile] fetchProfile data', data);
-        console.log('[Profile] fetchProfile avatar_url', data.user?.avatar_url);
-        setName(data.user.name || "");
-        setDomainId(data.user.domain_id?.toString());
-        setLevel(data.user.level);
-        setAvatarUrl(data.user.avatar_url || null);
-        updateUser(data.user);
+        const normalizedUser = {
+          ...data.user,
+          avatar_url: data.user?.avatar_url || null,
+        };
+        console.log('[Profile] normalized avatar_url', normalizedUser.avatar_url);
+        setName(normalizedUser.name || "");
+        setDomainId(normalizedUser.domain_id?.toString());
+        setLevel(normalizedUser.level);
+        setAvatarUrl(normalizedUser.avatar_url);
+        updateUser(normalizedUser);
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('Profile fetch error:', errorData);
