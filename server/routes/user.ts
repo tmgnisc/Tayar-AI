@@ -960,6 +960,7 @@ router.get('/profile', async (req: AuthRequest, res) => {
       }
 
       const user = users[0];
+      console.log('[Profile API] Returning user avatar_url:', user.avatar_url);
       res.json({
         user: {
           id: user.id,

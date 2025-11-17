@@ -50,6 +50,7 @@ export default function Profile() {
       if (response.ok) {
         const data = await response.json();
         console.log('[Profile] fetchProfile data', data);
+        console.log('[Profile] fetchProfile avatar_url', data.user?.avatar_url);
         setName(data.user.name || "");
         setDomainId(data.user.domain_id?.toString());
         setLevel(data.user.level);

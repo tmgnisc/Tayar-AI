@@ -37,6 +37,7 @@ export default function InterviewSession() {
 
   useEffect(() => {
     console.log('[InterviewSession] user data', user);
+    console.log('[InterviewSession] avatar_url', user?.avatar_url);
   }, [user]);
 
   useEffect(() => {

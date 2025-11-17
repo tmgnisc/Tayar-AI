@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Brain, LogOut } from "lucide-react";
@@ -26,6 +25,7 @@ export const Navbar = ({ showAuth = true, showProfile = false }: NavbarProps) =>
 
   useEffect(() => {
     console.log('[Navbar] user data', user);
+    console.log('[Navbar] avatar_url', user?.avatar_url);
   }, [user]);
 
   const handleLogout = () => {
@@ -77,12 +77,12 @@ export const Navbar = ({ showAuth = true, showProfile = false }: NavbarProps) =>
         {isAuthenticated ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Avatar className="w-10 h-10 cursor-pointer">
-                <AvatarImage src={user.avatar_url || undefined} alt={user.name} />
-                <AvatarFallback>
+      <Avatar className="w-10 h-10 cursor-pointer">
+        <AvatarImage src={user.avatar_url || undefined} alt={user.name} />
+        <AvatarFallback>
                   {user.name?.charAt(0).toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
+        </AvatarFallback>
+      </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
