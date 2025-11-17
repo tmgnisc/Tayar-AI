@@ -9,11 +9,16 @@ const __dirname = dirname(__filename);
 interface Question {
   id: number;
   question: string;
-  expectedAnswers: string[];
+  expectedAnswers?: string[]; // Legacy support
+  expectedSummary?: string; // New format - single summary string
   keywords: string[];
   followUp?: string;
-  routeKeywords?: { [keyword: string]: number }; // Maps keywords to next question IDs
-  defaultNextQuestionId?: number; // Default next question if no keywords match
+  routeKeywords?: { [keyword: string]: number }; // Legacy support
+  routing?: { [keyword: string]: number }; // New format - Maps keywords to next question IDs
+  defaultNextQuestionId?: number; // Legacy support
+  defaultNext?: number | null; // New format - Default next question if no keywords match
+  lowKnowledgePhrases?: string[]; // Phrases that indicate low knowledge
+  systemReplyOnLowKnowledge?: string; // System response when low knowledge detected
 }
 
 interface InterviewQuestions {
@@ -72,25 +77,171 @@ export function getQuestions(domain: string, level: string): Question[] {
 }
 
 /**
+ * Common profanity/abusive words (basic list - can be expanded)
+ */
+const PROFANITY_WORDS = [
+  'fuck', 'shit', 'damn', 'hell', 'bitch', 'ass', 'bastard', 'crap',
+  'stupid', 'idiot', 'dumb', 'moron', 'retard', 'crap', 'piss',
+  // Add more as needed
+];
+
+/**
+ * Check if answer contains profanity or abusive language
+ */
+export function checkProfanity(userAnswer: string): boolean {
+  if (!userAnswer) return false;
+  
+  const answerLower = userAnswer.toLowerCase();
+  
+  for (const word of PROFANITY_WORDS) {
+    // Check for whole word match
+    const wordRegex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    if (wordRegex.test(answerLower)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Check if answer is off-topic based on keywords
+ * Returns true if answer seems unrelated to the question topic
+ */
+export function checkOffTopic(
+  userAnswer: string,
+  questionKeywords: string[],
+  domainKeywords?: string[]
+): boolean {
+  if (!userAnswer || !questionKeywords || questionKeywords.length === 0) {
+    return false;
+  }
+
+  const answerLower = userAnswer.toLowerCase();
+  
+  // Check if answer contains any relevant keywords
+  let relevantKeywordsFound = 0;
+  for (const keyword of questionKeywords) {
+    const keywordLower = keyword.toLowerCase();
+    if (answerLower.includes(keywordLower)) {
+      relevantKeywordsFound++;
+    }
+  }
+  
+  // If answer is very short and has no relevant keywords, might be off-topic
+  // But we need to be careful - short answers might just be brief
+  const answerWords = answerLower.split(/\s+/).filter(w => w.length > 2);
+  
+  // If answer has multiple words but no relevant keywords, likely off-topic
+  if (answerWords.length > 5 && relevantKeywordsFound === 0) {
+    // Check for common off-topic phrases
+    const offTopicPhrases = [
+      'can you tell me',
+      'what about',
+      'i want to know',
+      'explain to me',
+      'tell me about',
+      'i have a question',
+      'can i ask',
+      'i want to ask',
+    ];
+    
+    for (const phrase of offTopicPhrases) {
+      if (answerLower.includes(phrase)) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Check if user answer indicates low knowledge
+ */
+export function checkLowKnowledge(
+  userAnswer: string,
+  lowKnowledgePhrases?: string[]
+): boolean {
+  if (!lowKnowledgePhrases || lowKnowledgePhrases.length === 0) {
+    return false;
+  }
+
+  if (!userAnswer || userAnswer.trim().length === 0) {
+    return false;
+  }
+
+  const answerLower = userAnswer.toLowerCase().trim();
+  
+  // Check if answer contains any low knowledge phrases
+  for (const phrase of lowKnowledgePhrases) {
+    const phraseLower = phrase.toLowerCase().trim();
+    
+    // Check for exact phrase match
+    if (answerLower === phraseLower) {
+      return true;
+    }
+    
+    // Check if answer contains the phrase as a whole word/phrase
+    // This handles cases like "I don't know about this" matching "i don't know"
+    const phraseWords = phraseLower.split(/\s+/);
+    if (phraseWords.length === 1) {
+      // Single word - check if it appears as a word boundary
+      const wordRegex = new RegExp(`\\b${phraseLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      if (wordRegex.test(answerLower)) {
+        return true;
+      }
+    } else {
+      // Multi-word phrase - check if all words appear in order
+      // More flexible: check if answer contains the key words
+      const keyWords = phraseWords.filter(w => w.length > 2); // Filter out short words like "i", "a"
+      if (keyWords.length > 0) {
+        let allWordsFound = true;
+        let lastIndex = -1;
+        for (const word of keyWords) {
+          const wordIndex = answerLower.indexOf(word, lastIndex + 1);
+          if (wordIndex === -1) {
+            allWordsFound = false;
+            break;
+          }
+          lastIndex = wordIndex;
+        }
+        if (allWordsFound) {
+          return true;
+        }
+      }
+      
+      // Also check simple contains for phrases
+      if (answerLower.includes(phraseLower)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Compare user answer with expected answers
  * Returns a score from 0-100 based on keyword matches
  */
 export function evaluateAnswer(
   userAnswer: string,
-  expectedAnswers: string[],
+  expectedAnswers: string[] | undefined,
+  expectedSummary: string | undefined,
   keywords: string[]
-): { score: number; feedback: string } {
+): { score: number; feedback: string; isLowKnowledge: boolean } {
   if (!userAnswer || userAnswer.trim().length === 0) {
     return {
       score: 0,
       feedback: 'No answer provided.',
+      isLowKnowledge: false,
     };
   }
 
   const answerLower = userAnswer.toLowerCase();
   let score = 0;
   let matchedKeywords: string[] = [];
-  let matchedExpected: string[] = [];
 
   // Check for keyword matches (40% of score)
   keywords.forEach(keyword => {
@@ -101,20 +252,32 @@ export function evaluateAnswer(
   });
 
   // Check for expected answer matches (60% of score)
-  expectedAnswers.forEach(expected => {
-    const expectedLower = expected.toLowerCase();
-    // Check if user answer contains key phrases from expected answer
+  if (expectedAnswers && expectedAnswers.length > 0) {
+    // Legacy format with array of expected answers
+    expectedAnswers.forEach(expected => {
+      const expectedLower = expected.toLowerCase();
+      // Check if user answer contains key phrases from expected answer
+      const expectedWords = expectedLower.split(/\s+/).filter(w => w.length > 3);
+      const matchedWords = expectedWords.filter(word => answerLower.includes(word));
+      
+      if (matchedWords.length > 0) {
+        const matchRatio = matchedWords.length / expectedWords.length;
+        if (matchRatio > 0.3) { // At least 30% of key words match
+          score += (60 / expectedAnswers.length) * matchRatio;
+        }
+      }
+    });
+  } else if (expectedSummary) {
+    // New format with single expected summary
+    const expectedLower = expectedSummary.toLowerCase();
     const expectedWords = expectedLower.split(/\s+/).filter(w => w.length > 3);
     const matchedWords = expectedWords.filter(word => answerLower.includes(word));
     
     if (matchedWords.length > 0) {
       const matchRatio = matchedWords.length / expectedWords.length;
-      if (matchRatio > 0.3) { // At least 30% of key words match
-        matchedExpected.push(expected);
-        score += (60 / expectedAnswers.length) * matchRatio;
-      }
+      score += 60 * matchRatio;
     }
-  });
+  }
 
   // Cap score at 100
   score = Math.min(100, Math.round(score));
@@ -135,33 +298,66 @@ export function evaluateAnswer(
     feedback += ` You mentioned: ${matchedKeywords.slice(0, 3).join(', ')}.`;
   }
 
-  return { score, feedback };
+  return { score, feedback, isLowKnowledge: false };
 }
 
 /**
  * Get next question based on keywords in user's answer (keyword-based routing)
- * If no keywords match, falls back to defaultNextQuestionId or sequential order
+ * If no keywords match, falls back to defaultNext/defaultNextQuestionId or sequential order
+ * Also handles low knowledge detection
  */
 export function getNextQuestionByKeywords(
   domain: string,
   level: string,
   currentQuestionId: number,
   userAnswer: string
-): Question | null {
+): { question: Question | null; isLowKnowledge: boolean; lowKnowledgeReply?: string } {
   const questions = getQuestions(domain, level);
   const currentQuestion = questions.find(q => q.id === currentQuestionId);
   
   if (!currentQuestion) {
-    return null;
+    return { question: null, isLowKnowledge: false };
   }
 
-  // If routeKeywords exist, check user's answer for matching keywords
-  if (currentQuestion.routeKeywords && userAnswer) {
+  // Check for low knowledge phrases first
+  const isLowKnowledge = checkLowKnowledge(userAnswer, currentQuestion.lowKnowledgePhrases);
+  
+  if (isLowKnowledge && currentQuestion.systemReplyOnLowKnowledge) {
+    // If low knowledge detected, use defaultNext or continue sequentially
+    const defaultNextId = currentQuestion.defaultNext !== undefined 
+      ? currentQuestion.defaultNext 
+      : currentQuestion.defaultNextQuestionId;
+    
+    if (defaultNextId !== null && defaultNextId !== undefined) {
+      const nextQuestion = questions.find(q => q.id === defaultNextId);
+      if (nextQuestion) {
+        console.log(`[InterviewService] Low knowledge detected, routing to default: Question ${defaultNextId}`);
+        return {
+          question: nextQuestion,
+          isLowKnowledge: true,
+          lowKnowledgeReply: currentQuestion.systemReplyOnLowKnowledge,
+        };
+      }
+    } else {
+      // If defaultNext is null, interview ends
+      console.log(`[InterviewService] Low knowledge detected, interview ending`);
+      return {
+        question: null,
+        isLowKnowledge: true,
+        lowKnowledgeReply: currentQuestion.systemReplyOnLowKnowledge,
+      };
+    }
+  }
+
+  // Use routing (new format) or routeKeywords (legacy format)
+  const routingMap = currentQuestion.routing || currentQuestion.routeKeywords;
+  
+  if (routingMap && userAnswer) {
     const answerLower = userAnswer.toLowerCase();
     const matchedKeywords: Array<{ keyword: string; questionId: number }> = [];
 
     // Check each route keyword
-    for (const [keyword, questionId] of Object.entries(currentQuestion.routeKeywords)) {
+    for (const [keyword, questionId] of Object.entries(routingMap)) {
       // Check if keyword appears in the answer (case-insensitive, whole word or phrase)
       const keywordLower = keyword.toLowerCase();
       // Match whole word or phrase
@@ -179,22 +375,40 @@ export function getNextQuestionByKeywords(
       
       if (nextQuestion) {
         console.log(`[InterviewService] Keyword-based routing: "${matchedKeywords[0].keyword}" -> Question ${targetQuestionId}`);
-        return nextQuestion;
+        return { question: nextQuestion, isLowKnowledge: false };
       }
     }
   }
 
-  // Fallback to defaultNextQuestionId if specified
-  if (currentQuestion.defaultNextQuestionId !== undefined) {
-    const defaultQuestion = questions.find(q => q.id === currentQuestion.defaultNextQuestionId);
+  // Fallback to defaultNext (new format) or defaultNextQuestionId (legacy format)
+  // Only use defaultNext if it's explicitly set (not null, not undefined)
+  let defaultNextId: number | null | undefined = undefined;
+  
+  if (currentQuestion.defaultNext !== undefined) {
+    // New format: defaultNext can be null (explicit end) or a number
+    defaultNextId = currentQuestion.defaultNext;
+  } else if (currentQuestion.defaultNextQuestionId !== undefined) {
+    // Legacy format
+    defaultNextId = currentQuestion.defaultNextQuestionId;
+  }
+  
+  if (defaultNextId !== null && defaultNextId !== undefined) {
+    const defaultQuestion = questions.find(q => q.id === defaultNextId);
     if (defaultQuestion) {
-      console.log(`[InterviewService] Using defaultNextQuestionId: ${currentQuestion.defaultNextQuestionId}`);
-      return defaultQuestion;
+      console.log(`[InterviewService] Using defaultNext: ${defaultNextId}`);
+      return { question: defaultQuestion, isLowKnowledge: false };
+    } else {
+      console.warn(`[InterviewService] defaultNext question ${defaultNextId} not found, falling back to sequential`);
     }
+  } else if (defaultNextId === null) {
+    // Explicitly set to null means end interview
+    console.log(`[InterviewService] defaultNext is null, interview ending`);
+    return { question: null, isLowKnowledge: false };
   }
 
   // Final fallback: sequential order
-  return getNextQuestion(domain, level, currentQuestionId);
+  const nextQuestion = getNextQuestion(domain, level, currentQuestionId);
+  return { question: nextQuestion, isLowKnowledge: false };
 }
 
 /**
@@ -233,4 +447,5 @@ export function getGreetingMessage(userName?: string, domain?: string, level?: s
   
   return `Hello${name}! Welcome to your technical interview practice session${domainText}${levelText}. I'll be asking you some questions today. Let's begin!`;
 }
+
 

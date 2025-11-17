@@ -583,7 +583,13 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
       }
 
       // Process answer and get next question from static JSON
-      const { getNextQuestionByKeywords, evaluateAnswer, getQuestions } = await import('../services/interviewService');
+      const { 
+        getNextQuestionByKeywords, 
+        evaluateAnswer, 
+        getQuestions,
+        checkProfanity,
+        checkOffTopic
+      } = await import('../services/interviewService');
       
       // Get the last user message (their answer)
       const lastUserMessage = conversationHistory
@@ -600,6 +606,23 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         });
       }
 
+      // Count questions asked so far (count assistant messages in conversation history)
+      const questionsAsked = conversationHistory.filter(msg => msg.role === 'assistant').length;
+      const MAX_QUESTIONS = 5;
+
+      // Check if we've reached the maximum number of questions
+      if (questionsAsked >= MAX_QUESTIONS) {
+        return res.json({
+          message: "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!",
+          questionId: null,
+          evaluation: {
+            score: 0,
+            feedback: 'Interview completed.',
+          },
+          interviewComplete: true,
+        });
+      }
+
       // Get current question to evaluate answer
       const questions = getQuestions(domainName || interview.role, interview.difficulty);
       const currentQuestion = questions.find(q => q.id === currentQuestionId);
@@ -611,25 +634,71 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         });
       }
 
+      // Check for profanity/abusive language
+      if (checkProfanity(lastUserMessage)) {
+        return res.json({
+          message: "I understand you may be frustrated, but let's keep our conversation professional. Please focus on answering the technical questions. Let me ask you again: " + currentQuestion.question,
+          questionId: currentQuestionId, // Ask the same question again
+          question: currentQuestion.question,
+          evaluation: {
+            score: 0,
+            feedback: 'Please maintain a professional tone during the interview.',
+          },
+          interviewComplete: false,
+        });
+      }
+
+      // Check if answer is off-topic
+      if (checkOffTopic(lastUserMessage, currentQuestion.keywords)) {
+        return res.json({
+          message: "I appreciate your question, but let's focus on the current topic. Please answer the question I asked about the technical concepts. ",
+          questionId: currentQuestionId, // Ask the same question again
+          question: currentQuestion.question,
+          evaluation: {
+            score: 0,
+            feedback: 'Please stay on topic and answer the question asked.',
+          },
+          interviewComplete: false,
+        });
+      }
+
       // Evaluate the answer
       const evaluation = evaluateAnswer(
         lastUserMessage,
         currentQuestion.expectedAnswers,
+        currentQuestion.expectedSummary,
         currentQuestion.keywords
       );
 
       // Get next question based on keywords in user's answer (keyword-based routing)
-      const nextQuestion = getNextQuestionByKeywords(
+      const nextQuestionResult = getNextQuestionByKeywords(
         domainName || interview.role,
         interview.difficulty,
         currentQuestionId,
         lastUserMessage
       );
 
-      if (!nextQuestion) {
-        // Interview is complete
+      const { question: nextQuestion, isLowKnowledge, lowKnowledgeReply } = nextQuestionResult;
+
+      // Check if we've reached max questions (after this one)
+      const willExceedMax = questionsAsked + 1 >= MAX_QUESTIONS;
+
+      if (!nextQuestion || willExceedMax) {
+        // Interview is complete (either no more questions or reached max)
+        let completionMessage = "Thank you for your time today! You've completed all the questions. Great job on the interview practice!";
+        
+        // If low knowledge was detected and there's a reply, use it
+        if (isLowKnowledge && lowKnowledgeReply) {
+          completionMessage = lowKnowledgeReply;
+        }
+
+        // If we reached max questions, use a specific message
+        if (willExceedMax && nextQuestion) {
+          completionMessage = "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!";
+        }
+
         res.json({
-          message: "Thank you for your time today! You've completed all the questions. Great job on the interview practice!",
+          message: completionMessage,
           questionId: null,
           evaluation: {
             score: evaluation.score,
@@ -640,9 +709,16 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         return;
       }
 
-      // Provide feedback and ask next question
-      const feedbackMessage = evaluation.feedback;
-      const message = `${feedbackMessage} ${nextQuestion.question}`;
+      // Build the message
+      let message = '';
+      if (isLowKnowledge && lowKnowledgeReply) {
+        // Use low knowledge reply and then ask next question
+        message = `${lowKnowledgeReply} ${nextQuestion.question}`;
+      } else {
+        // Use normal feedback and ask next question
+        const feedbackMessage = evaluation.feedback;
+        message = `${feedbackMessage} ${nextQuestion.question}`;
+      }
 
       res.json({
         message,
