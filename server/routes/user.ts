@@ -1159,6 +1159,12 @@ router.post('/profile/upload-image', async (req: AuthRequest, res) => {
         if (updateResult.affectedRows === 0) {
           console.warn('[UploadImage] Warning: no rows updated. Check userId/database configuration.');
         }
+
+        const [verifyRows]: any = await connection.query(
+          'SELECT avatar_url FROM users WHERE id = ?',
+          [userId]
+        );
+        console.log('[UploadImage] avatar_url after update', verifyRows[0]?.avatar_url);
         
         res.json({
           message: 'Image uploaded successfully',
