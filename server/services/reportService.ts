@@ -52,11 +52,11 @@ export async function generateInterviewReport(
     }
 
     const interview = interviews[0];
-    const totalQuestions = answers.length;
+    const totalQuestions = answers.length || 5; // Default to 5 if no answers yet
     
     // Calculate statistics
     const totalScore = answers.reduce((sum, a) => sum + a.score, 0);
-    const averageScore = totalQuestions > 0 ? Math.round(totalScore / totalQuestions) : 0;
+    const averageScore = answers.length > 0 ? Math.round(totalScore / answers.length) : 0;
     
     const offTopicCount = answers.filter(a => a.isOffTopic).length;
     const lowKnowledgeCount = answers.filter(a => a.isLowKnowledge).length;
@@ -66,8 +66,8 @@ export async function generateInterviewReport(
     const questionsWithKeywords = answers.filter(a => 
       a.keywordsMatched.length > 0 && !a.isOffTopic && !a.isLowKnowledge
     ).length;
-    const keywordAccuracy = totalQuestions > 0 
-      ? Math.round((questionsWithKeywords / totalQuestions) * 100) 
+    const keywordAccuracy = answers.length > 0 
+      ? Math.round((questionsWithKeywords / answers.length) * 100) 
       : 0;
 
     // Determine overall rating

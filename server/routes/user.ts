@@ -588,7 +588,8 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         evaluateAnswer, 
         getQuestions,
         checkProfanity,
-        checkOffTopic
+        checkOffTopic,
+        checkLowKnowledge,
       } = await import('../services/interviewService');
       
       // Get the last user message (their answer)
@@ -606,27 +607,56 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         });
       }
 
-      // Count questions asked so far (count assistant messages that contain questions)
-      // The first question is asked in start-conversation, so we count user answers + 1
+      // Count questions asked so far
+      // Count user answers - each user answer means a question was asked and answered
+      // The current answer being processed is included in the count
       const userAnswers = conversationHistory.filter(msg => msg.role === 'user').length;
-      const questionsAsked = userAnswers; // Each user answer corresponds to a question asked
+      const questionsAnswered = userAnswers; // This includes the current answer being processed
       const MAX_QUESTIONS = 5;
 
+      // Get questions list first (needed for report generation)
+      const questions = getQuestions(domainName || interview.role, interview.difficulty);
+
       // Check if we've reached the maximum number of questions
-      if (questionsAsked >= MAX_QUESTIONS) {
+      // If we've answered 5 questions, we're done (the 5th answer is being processed now)
+      if (questionsAnswered >= MAX_QUESTIONS) {
         // Generate and return report
         const { generateInterviewReport } = await import('../services/reportService');
         
-        // Get all answers from conversation history (we'll need to reconstruct them)
-        // For now, we'll generate a basic report
-        const report = await generateInterviewReport(interviewId, userId, []);
+        // Get all stored answers from interview_feedback
+        const [feedbacks]: any = await connection.query(
+          'SELECT * FROM interview_feedback WHERE interview_id = ? ORDER BY id',
+          [interviewId]
+        );
+        
+        // Reconstruct answer analysis
+        const answers = feedbacks.map((fb: any) => {
+          const qId = parseInt(fb.category.replace('Question ', '')) || 0;
+          const question = questions.find(q => q.id === qId);
+          const isOffTopic = fb.feedback?.includes('Off-topic') || false;
+          const keywordsMatched = fb.feedback?.match(/Keywords matched: (.+)/)?.[1]?.split(', ') || [];
+          
+          return {
+            questionId: qId,
+            question: question?.question || '',
+            answer: '',
+            score: parseFloat(fb.score),
+            keywordsMatched: keywordsMatched.filter((k: string) => k && k !== 'None'),
+            isOffTopic,
+            isLowKnowledge: false,
+            hasProfanity: false,
+            feedback: fb.feedback || '',
+          };
+        });
+        
+        const report = await generateInterviewReport(interviewId, userId, answers);
         
         return res.json({
           message: "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!",
           questionId: null,
           evaluation: {
-            score: 0,
-            feedback: 'Interview completed.',
+            score: report.averageScore,
+            feedback: `Overall Rating: ${report.overallRating}`,
           },
           interviewComplete: true,
           report: report,
@@ -634,7 +664,6 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
       }
 
       // Get current question to evaluate answer
-      const questions = getQuestions(domainName || interview.role, interview.difficulty);
       const currentQuestion = questions.find(q => q.id === currentQuestionId);
       
       if (!currentQuestion) {
@@ -705,7 +734,7 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
       
       // Store answer analysis for report generation
       const hasProfanity = checkProfanity(lastUserMessage);
-      const isLowKnowledge = (await import('../services/interviewService')).checkLowKnowledge(
+      const isLowKnowledgeAnswer = checkLowKnowledge(
         lastUserMessage,
         currentQuestion.lowKnowledgePhrases
       );
@@ -732,23 +761,68 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         lastUserMessage
       );
 
-      const { question: nextQuestion, isLowKnowledge, lowKnowledgeReply } = nextQuestionResult;
+      const { question: nextQuestion, isLowKnowledge: nextIsLowKnowledge, lowKnowledgeReply } = nextQuestionResult;
 
-      // Check if we've reached max questions (after this one)
-      const willExceedMax = questionsAsked + 1 >= MAX_QUESTIONS;
+      // Check if we've reached max questions (after answering this one)
+      // We've already answered questionsAnswered questions, so after this answer we'll have answered questionsAnswered questions
+      // But we check if the NEXT question would exceed max
+      const willExceedMax = questionsAnswered >= MAX_QUESTIONS;
 
       if (!nextQuestion || willExceedMax) {
-        // Interview is complete (either no more questions or reached max)
-        let completionMessage = "Thank you for your time today! You've completed all the questions. Great job on the interview practice!";
+        // Interview is complete - generate report
+        const { generateInterviewReport } = await import('../services/reportService');
+        
+        // Get all stored answers from interview_feedback
+        const [feedbacks]: any = await connection.query(
+          'SELECT * FROM interview_feedback WHERE interview_id = ? ORDER BY id',
+          [interviewId]
+        );
+        
+        // Reconstruct answer analysis from stored data
+        const answers = feedbacks.map((fb: any) => {
+          const qId = parseInt(fb.category.replace('Question ', '')) || 0;
+          const question = questions.find(q => q.id === qId);
+          const isOffTopic = fb.feedback?.includes('Off-topic') || false;
+          const keywordsMatched = fb.feedback?.match(/Keywords matched: (.+)/)?.[1]?.split(', ') || [];
+          
+          return {
+            questionId: qId,
+            question: question?.question || '',
+            answer: '', // Not stored, but we have the feedback
+            score: parseFloat(fb.score),
+            keywordsMatched: keywordsMatched.filter((k: string) => k && k !== 'None'),
+            isOffTopic,
+            isLowKnowledge: false, // Would need to store this
+            hasProfanity: false, // Would need to store this
+            feedback: fb.feedback || '',
+          };
+        });
+        
+        // Add current answer
+        const answerLower = lastUserMessage.toLowerCase();
+        const keywordsMatched = currentQuestion.keywords.filter(keyword =>
+          answerLower.includes(keyword.toLowerCase())
+        );
+        
+        answers.push({
+          questionId: currentQuestionId,
+          question: currentQuestion.question,
+          answer: lastUserMessage,
+          score: evaluation.score,
+          keywordsMatched,
+          isOffTopic: false,
+          isLowKnowledge: isLowKnowledge,
+          hasProfanity: checkProfanity(lastUserMessage),
+          feedback: evaluation.feedback,
+        });
+        
+        const report = await generateInterviewReport(interviewId, userId, answers);
+        
+        let completionMessage = "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!";
         
         // If low knowledge was detected and there's a reply, use it
         if (isLowKnowledge && lowKnowledgeReply) {
           completionMessage = lowKnowledgeReply;
-        }
-
-        // If we reached max questions, use a specific message
-        if (willExceedMax && nextQuestion) {
-          completionMessage = "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!";
         }
 
         res.json({
@@ -759,6 +833,7 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
             feedback: evaluation.feedback,
           },
           interviewComplete: true,
+          report: report,
         });
         return;
       }
@@ -1055,6 +1130,15 @@ router.post('/profile/upload-image', async (req: AuthRequest, res) => {
       return res.status(400).json({ message: 'Image is required' });
     }
 
+    // Check if Cloudinary is configured
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.error('Cloudinary configuration missing. Required env vars: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET');
+      return res.status(500).json({ 
+        message: 'Image upload service not configured', 
+        error: 'Please configure Cloudinary environment variables' 
+      });
+    }
+
     // Upload to Cloudinary
     const { uploadImageFromBase64 } = await import('../services/cloudinary');
     
@@ -1085,6 +1169,41 @@ router.post('/profile/upload-image', async (req: AuthRequest, res) => {
     }
   } catch (error: any) {
     console.error('Upload image error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get interview report
+router.get('/interviews/:id/report', async (req: AuthRequest, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const userId = req.userId!;
+    const interviewId = parseInt(req.params.id);
+
+    try {
+      // Verify interview belongs to user
+      const [interviews]: any = await connection.query(
+        'SELECT * FROM interviews WHERE id = ? AND user_id = ?',
+        [interviewId, userId]
+      );
+
+      if (interviews.length === 0) {
+        return res.status(404).json({ message: 'Interview not found' });
+      }
+
+      const { getInterviewReport } = await import('../services/reportService');
+      const report = await getInterviewReport(interviewId, userId);
+
+      if (!report) {
+        return res.status(404).json({ message: 'Report not found' });
+      }
+
+      res.json(report);
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Get report error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
