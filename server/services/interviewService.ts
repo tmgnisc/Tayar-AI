@@ -117,40 +117,66 @@ export function checkOffTopic(
     return false;
   }
 
-  const answerLower = userAnswer.toLowerCase();
+  const answerLower = userAnswer.toLowerCase().trim();
+  const answerWords = answerLower.split(/\s+/).filter(w => w.length > 2);
+  
+  // Very short answers are probably on-topic (just brief)
+  if (answerWords.length < 3) {
+    return false;
+  }
   
   // Check if answer contains any relevant keywords
   let relevantKeywordsFound = 0;
   for (const keyword of questionKeywords) {
     const keywordLower = keyword.toLowerCase();
-    if (answerLower.includes(keywordLower)) {
+    // Check for whole word or partial match
+    const keywordRegex = new RegExp(`\\b${keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
+    if (keywordRegex.test(answerLower) || answerLower.includes(keywordLower)) {
       relevantKeywordsFound++;
     }
   }
   
-  // If answer is very short and has no relevant keywords, might be off-topic
-  // But we need to be careful - short answers might just be brief
-  const answerWords = answerLower.split(/\s+/).filter(w => w.length > 2);
-  
-  // If answer has multiple words but no relevant keywords, likely off-topic
-  if (answerWords.length > 5 && relevantKeywordsFound === 0) {
-    // Check for common off-topic phrases
-    const offTopicPhrases = [
-      'can you tell me',
-      'what about',
-      'i want to know',
-      'explain to me',
-      'tell me about',
-      'i have a question',
-      'can i ask',
-      'i want to ask',
+  // If answer has substantial content (8+ words) but no relevant keywords, check for off-topic patterns
+  if (answerWords.length >= 8 && relevantKeywordsFound === 0) {
+    // Check for common off-topic question patterns
+    const offTopicQuestionPatterns = [
+      /can you (tell|explain|teach|show) me/i,
+      /what (about|is|are) (the|a|an)/i,
+      /i (want|would like) to (know|learn|ask|understand)/i,
+      /tell me (about|more)/i,
+      /i have a question (about|regarding)/i,
+      /can i ask (you|about)/i,
+      /i want to ask/i,
+      /how (do|does|can) (you|i|we)/i,
+      /why (do|does|is|are)/i,
+      /when (do|does|is|are)/i,
+      /where (do|does|is|are)/i,
     ];
     
-    for (const phrase of offTopicPhrases) {
-      if (answerLower.includes(phrase)) {
-        return true;
+    // If answer looks like a question (starts with question words or patterns)
+    for (const pattern of offTopicQuestionPatterns) {
+      if (pattern.test(answerLower)) {
+        // But allow if it's a clarifying question that might still be on-topic
+        // Check if it contains any relevant keywords even in question form
+        let hasRelevantContent = false;
+        for (const keyword of questionKeywords) {
+          if (answerLower.includes(keyword.toLowerCase())) {
+            hasRelevantContent = true;
+            break;
+          }
+        }
+        
+        // If it's a question pattern but has no relevant keywords, it's likely off-topic
+        if (!hasRelevantContent) {
+          return true;
+        }
       }
     }
+  }
+  
+  // Additional check: if answer is very long (15+ words) with no relevant keywords, likely off-topic
+  if (answerWords.length >= 15 && relevantKeywordsFound === 0) {
+    return true;
   }
   
   return false;
