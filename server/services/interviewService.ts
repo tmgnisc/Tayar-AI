@@ -86,17 +86,68 @@ const PROFANITY_WORDS = [
 ];
 
 /**
+ * Abusive/negative phrases that indicate inappropriate language
+ */
+const ABUSIVE_PHRASES = [
+  'i am angry',
+  'you are bad',
+  'you are stupid',
+  'you are dumb',
+  'you are wrong',
+  'this is bad',
+  'this is stupid',
+  'this is dumb',
+  'i hate',
+  'you suck',
+  'this sucks',
+  'you are terrible',
+  'this is terrible',
+  'you are awful',
+  'this is awful',
+  'you are useless',
+  'this is useless',
+  'i am frustrated with you',
+  'you are annoying',
+  'this is annoying',
+  'you are wrong',
+  'you don\'t know',
+  'you are not good',
+  'this is not good',
+];
+
+/**
  * Check if answer contains profanity or abusive language
  */
 export function checkProfanity(userAnswer: string): boolean {
   if (!userAnswer) return false;
   
-  const answerLower = userAnswer.toLowerCase();
+  const answerLower = userAnswer.toLowerCase().trim();
   
+  // Check for profanity words
   for (const word of PROFANITY_WORDS) {
     // Check for whole word match
     const wordRegex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
     if (wordRegex.test(answerLower)) {
+      return true;
+    }
+  }
+  
+  // Check for abusive phrases
+  for (const phrase of ABUSIVE_PHRASES) {
+    if (answerLower.includes(phrase)) {
+      return true;
+    }
+  }
+  
+  // Check for patterns like "you are [negative word]" or "this is [negative word]"
+  const negativePatterns = [
+    /you are (bad|stupid|dumb|wrong|terrible|awful|useless|annoying|not good)/i,
+    /this is (bad|stupid|dumb|wrong|terrible|awful|useless|annoying|not good)/i,
+    /i (hate|am angry|am frustrated)/i,
+  ];
+  
+  for (const pattern of negativePatterns) {
+    if (pattern.test(answerLower)) {
       return true;
     }
   }
@@ -106,7 +157,8 @@ export function checkProfanity(userAnswer: string): boolean {
 
 /**
  * Check if answer is off-topic based on keywords
- * Returns true if answer seems unrelated to the question topic
+ * Returns true if answer doesn't contain ANY keywords from the question
+ * (except for very short answers or low knowledge phrases)
  */
 export function checkOffTopic(
   userAnswer: string,
@@ -120,62 +172,54 @@ export function checkOffTopic(
   const answerLower = userAnswer.toLowerCase().trim();
   const answerWords = answerLower.split(/\s+/).filter(w => w.length > 2);
   
-  // Very short answers are probably on-topic (just brief)
-  if (answerWords.length < 3) {
+  // Very short answers (1-2 words) might be brief but valid - don't mark as off-topic
+  if (answerWords.length <= 2) {
     return false;
   }
   
-  // Check if answer contains any relevant keywords
+  // Check if answer contains ANY relevant keywords from the question
   let relevantKeywordsFound = 0;
   for (const keyword of questionKeywords) {
-    const keywordLower = keyword.toLowerCase();
-    // Check for whole word or partial match
-    const keywordRegex = new RegExp(`\\b${keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
-    if (keywordRegex.test(answerLower) || answerLower.includes(keywordLower)) {
+    const keywordLower = keyword.toLowerCase().trim();
+    
+    // Check for whole word match (more strict)
+    const keywordRegex = new RegExp(`\\b${keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    if (keywordRegex.test(answerLower)) {
       relevantKeywordsFound++;
+      break; // Found at least one keyword, that's enough
+    }
+    
+    // Also check for partial match (for multi-word keywords like "virtual dom")
+    if (keywordLower.includes(' ') && answerLower.includes(keywordLower)) {
+      relevantKeywordsFound++;
+      break;
     }
   }
   
-  // If answer has substantial content (8+ words) but no relevant keywords, check for off-topic patterns
-  if (answerWords.length >= 8 && relevantKeywordsFound === 0) {
-    // Check for common off-topic question patterns
-    const offTopicQuestionPatterns = [
-      /can you (tell|explain|teach|show) me/i,
-      /what (about|is|are) (the|a|an)/i,
-      /i (want|would like) to (know|learn|ask|understand)/i,
-      /tell me (about|more)/i,
-      /i have a question (about|regarding)/i,
-      /can i ask (you|about)/i,
-      /i want to ask/i,
-      /how (do|does|can) (you|i|we)/i,
-      /why (do|does|is|are)/i,
-      /when (do|does|is|are)/i,
-      /where (do|does|is|are)/i,
+  // If answer has 3+ words but contains NO keywords from the question, it's off-topic
+  if (answerWords.length >= 3 && relevantKeywordsFound === 0) {
+    // Exception: Don't mark low knowledge phrases as off-topic (they're handled separately)
+    const lowKnowledgeIndicators = [
+      "i don't know",
+      "sorry",
+      "i haven't read",
+      "i haven't studied",
+      "i haven't done",
+      "not sure",
+      "no idea",
+      "i don't understand",
+      "can you explain",
+      "what do you mean",
     ];
     
-    // If answer looks like a question (starts with question words or patterns)
-    for (const pattern of offTopicQuestionPatterns) {
-      if (pattern.test(answerLower)) {
-        // But allow if it's a clarifying question that might still be on-topic
-        // Check if it contains any relevant keywords even in question form
-        let hasRelevantContent = false;
-        for (const keyword of questionKeywords) {
-          if (answerLower.includes(keyword.toLowerCase())) {
-            hasRelevantContent = true;
-            break;
-          }
-        }
-        
-        // If it's a question pattern but has no relevant keywords, it's likely off-topic
-        if (!hasRelevantContent) {
-          return true;
-        }
+    for (const indicator of lowKnowledgeIndicators) {
+      if (answerLower.includes(indicator)) {
+        // This is a low knowledge response, not off-topic
+        return false;
       }
     }
-  }
-  
-  // Additional check: if answer is very long (15+ words) with no relevant keywords, likely off-topic
-  if (answerWords.length >= 15 && relevantKeywordsFound === 0) {
+    
+    // If it's a substantial answer (3+ words) with no keywords, it's off-topic
     return true;
   }
   

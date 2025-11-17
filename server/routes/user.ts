@@ -606,12 +606,21 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         });
       }
 
-      // Count questions asked so far (count assistant messages in conversation history)
-      const questionsAsked = conversationHistory.filter(msg => msg.role === 'assistant').length;
+      // Count questions asked so far (count assistant messages that contain questions)
+      // The first question is asked in start-conversation, so we count user answers + 1
+      const userAnswers = conversationHistory.filter(msg => msg.role === 'user').length;
+      const questionsAsked = userAnswers; // Each user answer corresponds to a question asked
       const MAX_QUESTIONS = 5;
 
       // Check if we've reached the maximum number of questions
       if (questionsAsked >= MAX_QUESTIONS) {
+        // Generate and return report
+        const { generateInterviewReport } = await import('../services/reportService');
+        
+        // Get all answers from conversation history (we'll need to reconstruct them)
+        // For now, we'll generate a basic report
+        const report = await generateInterviewReport(interviewId, userId, []);
+        
         return res.json({
           message: "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!",
           questionId: null,
@@ -620,6 +629,7 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
             feedback: 'Interview completed.',
           },
           interviewComplete: true,
+          report: report,
         });
       }
 
@@ -648,15 +658,32 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         });
       }
 
-      // Check if answer is off-topic
-      if (checkOffTopic(lastUserMessage, currentQuestion.keywords)) {
+      // Check if answer is off-topic (if answer doesn't contain ANY keywords)
+      const isOffTopic = checkOffTopic(lastUserMessage, currentQuestion.keywords);
+      
+      if (isOffTopic) {
+        // Store this answer as off-topic for report
+        await connection.query(
+          `INSERT INTO interview_feedback (interview_id, category, score, feedback)
+           VALUES (?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE score = ?, feedback = ?`,
+          [
+            interviewId,
+            `Question ${currentQuestionId}`,
+            0,
+            'Off-topic: Answer did not contain relevant keywords',
+            0,
+            'Off-topic: Answer did not contain relevant keywords',
+          ]
+        );
+        
         return res.json({
           message: "I appreciate your question, but let's focus on the current topic. Please answer the question I asked about the technical concepts. ",
           questionId: currentQuestionId, // Ask the same question again
           question: currentQuestion.question,
           evaluation: {
             score: 0,
-            feedback: 'Please stay on topic and answer the question asked.',
+            feedback: 'Please stay on topic and answer the question asked. Your answer should include relevant keywords from the question.',
           },
           interviewComplete: false,
         });
@@ -668,6 +695,33 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         currentQuestion.expectedAnswers,
         currentQuestion.expectedSummary,
         currentQuestion.keywords
+      );
+      
+      // Check which keywords were matched
+      const answerLower = lastUserMessage.toLowerCase();
+      const keywordsMatched = currentQuestion.keywords.filter(keyword =>
+        answerLower.includes(keyword.toLowerCase())
+      );
+      
+      // Store answer analysis for report generation
+      const hasProfanity = checkProfanity(lastUserMessage);
+      const isLowKnowledge = (await import('../services/interviewService')).checkLowKnowledge(
+        lastUserMessage,
+        currentQuestion.lowKnowledgePhrases
+      );
+      
+      await connection.query(
+        `INSERT INTO interview_feedback (interview_id, category, score, feedback)
+         VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE score = ?, feedback = ?`,
+        [
+          interviewId,
+          `Question ${currentQuestionId}`,
+          evaluation.score,
+          `${evaluation.feedback} Keywords matched: ${keywordsMatched.join(', ') || 'None'}`,
+          evaluation.score,
+          `${evaluation.feedback} Keywords matched: ${keywordsMatched.join(', ') || 'None'}`,
+        ]
       );
 
       // Get next question based on keywords in user's answer (keyword-based routing)
