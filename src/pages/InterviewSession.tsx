@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/config/api";
 import { VoiceInterviewService } from "@/services/voiceInterview";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type InterviewStatus = 'idle' | 'connecting' | 'active' | 'ended';
 type VoiceStatus = 'idle' | 'listening' | 'speaking' | 'processing';
@@ -30,8 +31,9 @@ export default function InterviewSession() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const interviewId = searchParams.get('interviewId');
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { toast } = useToast();
+  const userInitial = user?.name?.charAt(0).toUpperCase() || 'U';
 
   useEffect(() => {
     if (interviewId && token) {
@@ -410,9 +412,12 @@ export default function InterviewSession() {
           {interviewStatus === 'idle' ? (
             <div className="h-full flex items-center justify-center text-white">
               <div className="space-y-6 text-center">
-                <div className="w-32 h-32 rounded-full bg-gray-700 flex items-center justify-center mx-auto">
-                  <Phone className="w-16 h-16 text-gray-400" />
-                </div>
+                <Avatar className="w-32 h-32 mx-auto border-4 border-gray-700">
+                  <AvatarImage src={user?.avatar_url || undefined} alt={user?.name || 'You'} />
+                  <AvatarFallback className="text-4xl bg-gray-700 text-white">
+                    {userInitial}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <h2 className="text-2xl font-semibold mb-2">Ready to start interview</h2>
                   <p className="text-gray-400 mb-6">
@@ -466,11 +471,12 @@ export default function InterviewSession() {
                   />
                 ) : (
                   <div className="text-center">
-                    <div className="w-40 h-40 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
-                      <span className="text-5xl text-white font-semibold">
-                        {interviewData?.userName?.charAt(0).toUpperCase() || 'U'}
-                      </span>
-                    </div>
+                    <Avatar className="w-40 h-40 mx-auto mb-4 border-4 border-gray-700">
+                      <AvatarImage src={user?.avatar_url || undefined} alt={user?.name || 'You'} />
+                      <AvatarFallback className="text-5xl bg-gray-700 text-white">
+                        {userInitial}
+                      </AvatarFallback>
+                    </Avatar>
                     <p className="text-gray-400 text-sm">You</p>
                     {voiceStatus === 'listening' && isAnswering && (
                       <div className="mt-2 flex items-center justify-center gap-2">

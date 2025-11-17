@@ -17,6 +17,7 @@ interface User {
   level?: string;
   subscription_type: string;
   subscription_status: string;
+  avatar_url?: string | null;
 }
 
 interface AuthContextType {

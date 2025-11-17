@@ -49,6 +49,7 @@ export default function Profile() {
         setDomainId(data.user.domain_id?.toString());
         setLevel(data.user.level);
         setAvatarUrl(data.user.avatar_url || null);
+        updateUser(data.user);
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('Profile fetch error:', errorData);
@@ -132,6 +133,7 @@ export default function Profile() {
           if (response.ok) {
             const data = await response.json();
             setAvatarUrl(data.avatar_url);
+            updateUser({ avatar_url: data.avatar_url });
             toast({
               title: "Image uploaded!",
               description: "Your profile picture has been updated.",
@@ -178,6 +180,7 @@ export default function Profile() {
 
       if (response.ok) {
         setAvatarUrl(null);
+        updateUser({ avatar_url: null });
         toast({
           title: "Image removed",
           description: "Your profile picture has been removed.",

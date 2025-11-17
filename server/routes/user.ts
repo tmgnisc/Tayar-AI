@@ -811,7 +811,7 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
           score: evaluation.score,
           keywordsMatched,
           isOffTopic: false,
-          isLowKnowledge: isLowKnowledge,
+          isLowKnowledge: isLowKnowledgeAnswer,
           hasProfanity: checkProfanity(lastUserMessage),
           feedback: evaluation.feedback,
         });
@@ -821,7 +821,7 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         let completionMessage = "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!";
         
         // If low knowledge was detected and there's a reply, use it
-        if (isLowKnowledge && lowKnowledgeReply) {
+        if (nextIsLowKnowledge && lowKnowledgeReply) {
           completionMessage = lowKnowledgeReply;
         }
 
@@ -840,7 +840,7 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
 
       // Build the message
       let message = '';
-      if (isLowKnowledge && lowKnowledgeReply) {
+      if (nextIsLowKnowledge && lowKnowledgeReply) {
         // Use low knowledge reply and then ask next question
         message = `${lowKnowledgeReply} ${nextQuestion.question}`;
       } else {
