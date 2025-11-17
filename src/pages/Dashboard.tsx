@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/config/api";
 
 export default function Dashboard() {
-  const { user, token } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -40,6 +40,9 @@ export default function Dashboard() {
           achievements: data.stats.achievements || 0,
         });
         setRecentInterviews(data.recent_interviews || []);
+        if (data.user) {
+          updateUser({ avatar_url: data.user.avatar_url || null });
+        }
       } else {
         toast({
           title: "Error",

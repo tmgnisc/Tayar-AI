@@ -38,7 +38,7 @@ router.get('/dashboard', async (req: AuthRequest, res) => {
 
       // Get user info
       const [users]: any = await connection.query(
-        'SELECT subscription_type, subscription_status FROM users WHERE id = ?',
+        'SELECT subscription_type, subscription_status, avatar_url FROM users WHERE id = ?',
         [userId]
       );
 
@@ -53,6 +53,9 @@ router.get('/dashboard', async (req: AuthRequest, res) => {
         subscription: {
           type: users[0]?.subscription_type || 'free',
           status: users[0]?.subscription_status || 'active',
+        },
+        user: {
+          avatar_url: users[0]?.avatar_url || null,
         },
       });
     } finally {

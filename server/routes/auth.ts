@@ -201,6 +201,7 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
           subscription_status: user.subscription_status,
           created_at: user.created_at,
           last_login: user.last_login,
+          avatar_url: user.avatar_url || null,
         }
       });
     } finally {
