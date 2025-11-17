@@ -429,7 +429,7 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
     const userId = req.userId!;
     const interviewId = parseInt(req.params.id);
 
-    console.log(`[Start Conversation] Starting conversation for interview ${interviewId}, user ${userId}`);
+    // console.log(`[Start Conversation] Starting conversation for interview ${interviewId}, user ${userId}`);
 
     // Get interview details
     // Note: interviews.role contains the domain name, not a domain_id
@@ -446,11 +446,11 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
     }
 
     const interview = interviews[0];
-    console.log(`[Start Conversation] Interview found:`, {
-      role: interview.role,
-      difficulty: interview.difficulty,
-      language: interview.language,
-    });
+    // console.log(`[Start Conversation] Interview found:`, {
+    //   role: interview.role,
+    //   difficulty: interview.difficulty,
+    //   language: interview.language,
+    // });
 
     // Get user name
     const [users]: any = await connection.query(
@@ -475,7 +475,7 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
     }
 
     // Get first question from static JSON data
-    console.log('[Start Conversation] Loading questions from JSON...');
+    // console.log('[Start Conversation] Loading questions from JSON...');
     const { getFirstQuestion, getGreetingMessage } = await import('../services/interviewService');
     
     const firstQuestion = getFirstQuestion(domainName || interview.role, interview.difficulty);
@@ -1126,8 +1126,6 @@ router.post('/profile/upload-image', async (req: AuthRequest, res) => {
     const userId = req.userId!;
     const { image } = req.body; // Base64 image string
 
-    console.log('[UploadImage] Incoming request', { userId, hasImage: !!image, length: image?.length });
-
     if (!image) {
       return res.status(400).json({ message: 'Image is required' });
     }
@@ -1146,7 +1144,6 @@ router.post('/profile/upload-image', async (req: AuthRequest, res) => {
     
     try {
       const result = await uploadImageFromBase64(image, 'sdc');
-      console.log('[UploadImage] Cloudinary upload success', { url: result.url, public_id: result.public_id });
       
       // Update user's avatar_url in database
       const connection = await pool.getConnection();
@@ -1155,16 +1152,6 @@ router.post('/profile/upload-image', async (req: AuthRequest, res) => {
           'UPDATE users SET avatar_url = ? WHERE id = ?',
           [result.url, userId]
         );
-        console.log('[UploadImage] DB update result', updateResult);
-        if (updateResult.affectedRows === 0) {
-          console.warn('[UploadImage] Warning: no rows updated. Check userId/database configuration.');
-        }
-
-        const [verifyRows]: any = await connection.query(
-          'SELECT avatar_url FROM users WHERE id = ?',
-          [userId]
-        );
-        console.log('[UploadImage] avatar_url after update', verifyRows[0]?.avatar_url);
         
         res.json({
           message: 'Image uploaded successfully',
@@ -1174,14 +1161,12 @@ router.post('/profile/upload-image', async (req: AuthRequest, res) => {
         connection.release();
       }
     } catch (error: any) {
-      console.error('[UploadImage] Cloudinary upload error:', error);
       res.status(500).json({ 
         message: 'Failed to upload image', 
         error: error.message 
       });
     }
   } catch (error: any) {
-    console.error('[UploadImage] Unexpected error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

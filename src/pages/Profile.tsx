@@ -34,22 +34,26 @@ export default function Profile() {
 
   useEffect(() => {
     if (token && user) {
+      console.log('[Profile] useEffect init', { tokenPresent: !!token, user });
       fetchProfile();
       fetchDomains();
     }
   }, [token, user]);
 
+  useEffect(() => {
+    console.log('[Profile] avatarUrl state changed', avatarUrl);
+  }, [avatarUrl]);
+
   const fetchProfile = async () => {
     try {
       const response = await apiRequest('api/user/profile', {}, token);
-
       if (response.ok) {
         const data = await response.json();
+        console.log('[Profile] fetchProfile data', data);
         setName(data.user.name || "");
         setDomainId(data.user.domain_id?.toString());
         setLevel(data.user.level);
         setAvatarUrl(data.user.avatar_url || null);
-        updateUser(data.user);
         updateUser(data.user);
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -119,8 +123,6 @@ export default function Profile() {
 
     setUploadingImage(true);
 
-    console.log('[Profile] Selected file', { name: file.name, size: file.size, type: file.type });
-
     try {
       // Convert to base64
       const reader = new FileReader();
@@ -133,11 +135,8 @@ export default function Profile() {
             method: 'POST',
             body: JSON.stringify({ image: base64String }),
           }, token);
-          console.log('[Profile] Upload response status', response.status);
-
           if (response.ok) {
             const data = await response.json();
-            console.log('[Profile] Upload response data', data);
             setAvatarUrl(data.avatar_url);
             updateUser({ avatar_url: data.avatar_url });
             toast({

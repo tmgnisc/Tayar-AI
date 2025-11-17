@@ -1,4 +1,4 @@
- import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -34,6 +34,10 @@ export default function InterviewSession() {
   const { token, user } = useAuth();
   const { toast } = useToast();
   const userInitial = user?.name?.charAt(0).toUpperCase() || 'U';
+
+  useEffect(() => {
+    console.log('[InterviewSession] user data', user);
+  }, [user]);
 
   useEffect(() => {
     if (interviewId && token) {

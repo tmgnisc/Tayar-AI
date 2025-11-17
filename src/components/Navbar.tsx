@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Brain, LogOut } from "lucide-react";
@@ -22,6 +23,10 @@ export const Navbar = ({ showAuth = true, showProfile = false }: NavbarProps) =>
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const isAuthenticated = !!user;
+
+  useEffect(() => {
+    console.log('[Navbar] user data', user);
+  }, [user]);
 
   const handleLogout = () => {
     logout();
