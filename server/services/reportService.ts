@@ -6,6 +6,8 @@ interface AnswerAnalysis {
   answer: string;
   score: number;
   keywordsMatched: string[];
+  expectedKeywords: string[];
+  accuracy?: number;
   isOffTopic: boolean;
   isLowKnowledge: boolean;
   hasProfanity: boolean;
@@ -53,21 +55,32 @@ export async function generateInterviewReport(
 
     const interview = interviews[0];
     const totalQuestions = answers.length || 5; // Default to 5 if no answers yet
+    const enrichedAnswers = answers.map(answer => {
+      const expectedKeywords = answer.expectedKeywords || [];
+      const matchedCount = answer.keywordsMatched?.length || 0;
+      const accuracy = expectedKeywords.length > 0
+        ? Math.round((matchedCount / expectedKeywords.length) * 100)
+        : (matchedCount > 0 ? 100 : 0);
+      return {
+        ...answer,
+        expectedKeywords,
+        accuracy,
+      };
+    });
     
     // Calculate statistics
-    const totalScore = answers.reduce((sum, a) => sum + a.score, 0);
-    const averageScore = answers.length > 0 ? Math.round(totalScore / answers.length) : 0;
+    const totalScore = enrichedAnswers.reduce((sum, a) => sum + a.score, 0);
+    const averageScore = enrichedAnswers.length > 0 ? Math.round(totalScore / enrichedAnswers.length) : 0;
     
-    const offTopicCount = answers.filter(a => a.isOffTopic).length;
-    const lowKnowledgeCount = answers.filter(a => a.isLowKnowledge).length;
-    const profanityCount = answers.filter(a => a.hasProfanity).length;
+    const offTopicCount = enrichedAnswers.filter(a => a.isOffTopic).length;
+    const lowKnowledgeCount = enrichedAnswers.filter(a => a.isLowKnowledge).length;
+    const profanityCount = enrichedAnswers.filter(a => a.hasProfanity).length;
     
-    // Calculate keyword accuracy (questions with at least one keyword match)
-    const questionsWithKeywords = answers.filter(a => 
-      a.keywordsMatched.length > 0 && !a.isOffTopic && !a.isLowKnowledge
-    ).length;
-    const keywordAccuracy = answers.length > 0 
-      ? Math.round((questionsWithKeywords / answers.length) * 100) 
+    // Calculate keyword accuracy (average percentage of keywords matched)
+    const keywordAccuracy = enrichedAnswers.length > 0 
+      ? Math.round(
+          enrichedAnswers.reduce((sum, a) => sum + (a.accuracy || 0), 0) / enrichedAnswers.length
+        )
       : 0;
 
     // Determine overall rating
@@ -121,7 +134,7 @@ export async function generateInterviewReport(
 
     // Identify topics to cover based on low scores and missing keywords
     const topicsToCover: string[] = [];
-    const lowScoreAnswers = answers.filter(a => a.score < 60 && !a.isOffTopic);
+    const lowScoreAnswers = enrichedAnswers.filter(a => a.score < 60 && !a.isOffTopic);
     
     for (const answer of lowScoreAnswers) {
       // Extract topic from question
@@ -154,7 +167,7 @@ export async function generateInterviewReport(
       profanityCount,
       keywordAccuracy,
       overallRating,
-      detailedAnalysis: answers,
+      detailedAnalysis: enrichedAnswers,
       recommendations,
       topicsToCover,
     };
@@ -169,23 +182,6 @@ export async function generateInterviewReport(
        WHERE id = ?`,
       [averageScore, interviewId]
     );
-
-    // Save individual feedback entries
-    for (const answer of answers) {
-      await connection.query(
-        `INSERT INTO interview_feedback (interview_id, category, score, feedback)
-         VALUES (?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE score = ?, feedback = ?`,
-        [
-          interviewId,
-          `Question ${answer.questionId}`,
-          answer.score,
-          answer.feedback,
-          answer.score,
-          answer.feedback,
-        ]
-      );
-    }
 
     return report;
   } finally {
@@ -219,18 +215,31 @@ export async function getInterviewReport(
       [interviewId]
     );
 
-    // Reconstruct answers from feedback (simplified - in production, store full answer data)
-    const answers: AnswerAnalysis[] = feedbacks.map((fb: any) => ({
-      questionId: parseInt(fb.category.replace('Question ', '')) || 0,
-      question: '', // Would need to store this separately
-      answer: '', // Would need to store this separately
-      score: parseFloat(fb.score),
-      keywordsMatched: [],
-      isOffTopic: false,
-      isLowKnowledge: false,
-      hasProfanity: false,
-      feedback: fb.feedback || '',
-    }));
+    // Reconstruct answers from feedback
+    const answers: AnswerAnalysis[] = feedbacks.map((fb: any) => {
+      let details: any = {};
+      if (fb.details) {
+        try {
+          details = typeof fb.details === 'string' ? JSON.parse(fb.details) : fb.details;
+        } catch (error) {
+          console.warn('Failed to parse feedback details JSON:', error);
+          details = {};
+        }
+      }
+
+      return {
+        questionId: parseInt(fb.category.replace('Question ', '')) || 0,
+        question: details.question || '',
+        answer: details.answer || '',
+        score: parseFloat(fb.score),
+        keywordsMatched: Array.isArray(details.keywordsMatched) ? details.keywordsMatched : [],
+        expectedKeywords: Array.isArray(details.expectedKeywords) ? details.expectedKeywords : [],
+        isOffTopic: !!details.isOffTopic,
+        isLowKnowledge: !!details.isLowKnowledge,
+        hasProfanity: !!details.hasProfanity,
+        feedback: fb.feedback || '',
+      };
+    });
 
     // Generate report
     return await generateInterviewReport(interviewId, userId, answers);

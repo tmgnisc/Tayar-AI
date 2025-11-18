@@ -130,10 +130,12 @@ async function createTables() {
         category VARCHAR(100) NOT NULL,
         score DECIMAL(4,2) NOT NULL,
         feedback TEXT,
+        details JSON NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (interview_id) REFERENCES interviews(id) ON DELETE CASCADE,
         INDEX idx_interview_id (interview_id),
-        INDEX idx_category (category)
+        INDEX idx_category (category),
+        UNIQUE KEY idx_interview_category (interview_id, category)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
@@ -193,7 +195,7 @@ async function migrateTables() {
         console.log('⚠️  Avatar URL column migration:', error.message);
       }
     }
-    // Check if users table exists and add missing columns
+      // Check if users table exists and add missing columns
     const [usersTable]: any = await connection.query(
       "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'users'"
     );
@@ -355,12 +357,12 @@ async function migrateInterviewTable() {
   const connection = await pool.getConnection();
   
   try {
-    // Check if interviews table exists
+      // Check if interviews table exists
     const [interviewsTable]: any = await connection.query(
       "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'interviews'"
     );
     
-    if (interviewsTable.length > 0) {
+      if (interviewsTable.length > 0) {
       // Check and add vapi_call_id column
       const [vapiCallIdColumn]: any = await connection.query(
         `SELECT 1 FROM information_schema.columns 
@@ -379,6 +381,28 @@ async function migrateInterviewTable() {
           console.log('✅ Added vapi_call_id column');
         } catch (error: any) {
           console.warn('Could not add vapi_call_id column:', error.message);
+        }
+      }
+
+      // Add details column to interview_feedback if missing
+      const [detailsColumn]: any = await connection.query(
+        `SELECT 1 FROM information_schema.columns 
+         WHERE table_schema = DATABASE() 
+         AND table_name = 'interview_feedback' 
+         AND column_name = 'details'`
+      );
+
+      if (detailsColumn.length === 0) {
+        console.log('🔄 Adding details column to interview_feedback table...');
+        try {
+          await connection.query(`
+            ALTER TABLE interview_feedback 
+            ADD COLUMN details JSON NULL,
+            ADD UNIQUE KEY idx_interview_category (interview_id, category)
+          `);
+          console.log('✅ Added details column to interview_feedback table');
+        } catch (error: any) {
+          console.warn('Could not add details column:', error.message);
         }
       }
       

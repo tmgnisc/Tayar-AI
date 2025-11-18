@@ -694,21 +694,30 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
       const isOffTopic = checkOffTopic(lastUserMessage, currentQuestion.keywords);
       
       if (isOffTopic) {
+        const offTopicDetails = {
+          isOffTopic: true,
+          keywordsMatched: [],
+          expectedKeywords: currentQuestion.keywords,
+          answer: lastUserMessage,
+          question: currentQuestion.question,
+          hasProfanity: false,
+          isLowKnowledge: false,
+        };
+
         // Store this answer as off-topic for report
         await connection.query(
-          `INSERT INTO interview_feedback (interview_id, category, score, feedback)
-           VALUES (?, ?, ?, ?)
-           ON DUPLICATE KEY UPDATE score = ?, feedback = ?`,
+          `INSERT INTO interview_feedback (interview_id, category, score, feedback, details)
+           VALUES (?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE score = VALUES(score), feedback = VALUES(feedback), details = VALUES(details)`,
           [
             interviewId,
             `Question ${currentQuestionId}`,
             0,
             'Off-topic: Answer did not contain relevant keywords',
-            0,
-            'Off-topic: Answer did not contain relevant keywords',
+            JSON.stringify(offTopicDetails),
           ]
         );
-        
+
         return res.json({
           message: "I appreciate your question, but let's focus on the current topic. Please answer the question I asked about the technical concepts. ",
           questionId: currentQuestionId, // Ask the same question again
@@ -742,17 +751,26 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         currentQuestion.lowKnowledgePhrases
       );
       
+      const answerDetails = {
+        isOffTopic: false,
+        isLowKnowledge: isLowKnowledgeAnswer,
+        hasProfanity,
+        keywordsMatched,
+        expectedKeywords: currentQuestion.keywords,
+        answer: lastUserMessage,
+        question: currentQuestion.question,
+      };
+
       await connection.query(
-        `INSERT INTO interview_feedback (interview_id, category, score, feedback)
-         VALUES (?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE score = ?, feedback = ?`,
+        `INSERT INTO interview_feedback (interview_id, category, score, feedback, details)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE score = VALUES(score), feedback = VALUES(feedback), details = VALUES(details)`,
         [
           interviewId,
           `Question ${currentQuestionId}`,
           evaluation.score,
           `${evaluation.feedback} Keywords matched: ${keywordsMatched.join(', ') || 'None'}`,
-          evaluation.score,
-          `${evaluation.feedback} Keywords matched: ${keywordsMatched.join(', ') || 'None'}`,
+          JSON.stringify(answerDetails),
         ]
       );
 
@@ -785,38 +803,33 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         const answers = feedbacks.map((fb: any) => {
           const qId = parseInt(fb.category.replace('Question ', '')) || 0;
           const question = questions.find(q => q.id === qId);
-          const isOffTopic = fb.feedback?.includes('Off-topic') || false;
-          const keywordsMatched = fb.feedback?.match(/Keywords matched: (.+)/)?.[1]?.split(', ') || [];
+          let details: any = {};
+          if (fb.details) {
+            try {
+              details = typeof fb.details === 'string' ? JSON.parse(fb.details) : fb.details;
+            } catch {
+              details = {};
+            }
+          }
+          const keywordsMatched = Array.isArray(details.keywordsMatched)
+            ? details.keywordsMatched
+            : [];
+          const expectedKeywords = Array.isArray(details.expectedKeywords)
+            ? details.expectedKeywords
+            : (question?.keywords || []);
           
           return {
             questionId: qId,
             question: question?.question || '',
-            answer: '', // Not stored, but we have the feedback
+            answer: details.answer || '',
             score: parseFloat(fb.score),
-            keywordsMatched: keywordsMatched.filter((k: string) => k && k !== 'None'),
-            isOffTopic,
-            isLowKnowledge: false, // Would need to store this
-            hasProfanity: false, // Would need to store this
+            keywordsMatched,
+            expectedKeywords,
+            isOffTopic: !!details.isOffTopic,
+            isLowKnowledge: !!details.isLowKnowledge,
+            hasProfanity: !!details.hasProfanity,
             feedback: fb.feedback || '',
           };
-        });
-        
-        // Add current answer
-        const answerLower = lastUserMessage.toLowerCase();
-        const keywordsMatched = currentQuestion.keywords.filter(keyword =>
-          answerLower.includes(keyword.toLowerCase())
-        );
-        
-        answers.push({
-          questionId: currentQuestionId,
-          question: currentQuestion.question,
-          answer: lastUserMessage,
-          score: evaluation.score,
-          keywordsMatched,
-          isOffTopic: false,
-          isLowKnowledge: isLowKnowledgeAnswer,
-          hasProfanity: checkProfanity(lastUserMessage),
-          feedback: evaluation.feedback,
         });
         
         const report = await generateInterviewReport(interviewId, userId, answers);
