@@ -395,6 +395,15 @@ async function migrateInterviewTable() {
       if (detailsColumn.length === 0) {
         console.log('🔄 Adding details column to interview_feedback table...');
         try {
+          // Remove duplicate rows per (interview_id, category) before adding unique index
+          await connection.query(`
+            DELETE tf1 FROM interview_feedback tf1
+            INNER JOIN interview_feedback tf2
+              ON tf1.interview_id = tf2.interview_id
+             AND tf1.category = tf2.category
+             AND tf1.id > tf2.id
+          `);
+
           await connection.query(`
             ALTER TABLE interview_feedback 
             ADD COLUMN details JSON NULL,
