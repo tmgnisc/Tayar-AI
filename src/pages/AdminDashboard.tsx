@@ -424,7 +424,6 @@ export default function AdminDashboard() {
           </motion.div>
         )}
       </div>
-    </div>
 
       <Dialog
         open={detailsOpen}
@@ -469,7 +468,92 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className brush etc>
+                <div className="rounded-xl border border-border/50 bg-background/50 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ListChecks className="w-5 h-5 text-primary" />
+                    <p className="font-semibold">Account & Usage</p>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <p><span className="text-muted-foreground">Subscription:</span> {userDetails.user.subscription_type || 'free'}</p>
+                    <p><span className="text-muted-foreground">Status:</span> {userDetails.user.subscription_status || 'N/A'}</p>
+                    <p><span className="text-muted-foreground">Interviews Completed:</span> {userDetails.interviews?.length ?? 0}</p>
+                    <p><span className="text-muted-foreground">User ID:</span> #{userDetails.user.id}</p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-lg font-semibold">Recent Interviews</h4>
+                  <Badge variant="secondary">{userDetails.interviews?.length ?? 0} records</Badge>
+                </div>
+                {userDetails.interviews && userDetails.interviews.length > 0 ? (
+                  <div className="space-y-3">
+                    {userDetails.interviews.map((interview) => (
+                      <div key={interview.id} className="rounded-lg border border-border/50 p-3 bg-muted/40">
+                        <div className="flex flex-wrap justify-between text-sm">
+                          <p className="font-semibold">#{interview.id} · {interview.role || 'N/A'}</p>
+                          <span className="text-muted-foreground">{formatDate(interview.created_at)}</span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                          <span>Difficulty: {interview.difficulty || 'N/A'}</span>
+                          <span>Language: {interview.language || 'N/A'}</span>
+                          <span>Status: {interview.status || 'N/A'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No interviews found for this user.</p>
+                )}
+              </div>
+
+              <Separator />
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-lg font-semibold mb-3">Subscription History</h4>
+                  {userDetails.subscriptions && userDetails.subscriptions.length ? (
+                    <div className="space-y-3">
+                      {userDetails.subscriptions.map((sub) => (
+                        <div key={sub.id} className="rounded-lg border border-border/50 p-3 bg-background/40">
+                          <p className="font-semibold">{sub.plan_type || sub.subscription_type || 'N/A'} plan</p>
+                          <p className="text-sm text-muted-foreground">Status: {sub.status}</p>
+                          <p className="text-sm text-muted-foreground">Start: {formatDate(sub.start_date)}</p>
+                          <p className="text-sm text-muted-foreground">End: {formatDate(sub.end_date)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No subscription records.</p>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-semibold mb-3">Recent Activity</h4>
+                  {userDetails.activity && userDetails.activity.length ? (
+                    <div className="space-y-3">
+                      {userDetails.activity.map((item) => (
+                        <div key={item.id} className="rounded-lg border border-border/50 p-3 bg-background/40">
+                          <p className="font-semibold">{item.activity_type}</p>
+                          <p className="text-sm text-muted-foreground">{item.description || 'No description'}</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(item.created_at)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No recent activity.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No additional details available.</p>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
-
