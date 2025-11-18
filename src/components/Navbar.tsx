@@ -57,7 +57,7 @@ export const Navbar = ({ showAuth = true, showProfile = false }: NavbarProps) =>
         {!isAuthenticated && (
           <div className="hidden md:flex items-center gap-6">
             <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              Homesl
+              Home
             </Link>
             <Link to="/about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               About

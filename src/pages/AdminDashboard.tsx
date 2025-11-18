@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, TrendingUp, DollarSign, Play, Search, Eye, Settings, Activity, Calendar, Briefcase } from "lucide-react";
+import { Users, TrendingUp, DollarSign, Play, Search, Eye, Settings, Activity, Calendar, Briefcase, Mail, UserCircle, Loader2, ListChecks } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/config/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,6 +52,14 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [userDetails, setUserDetails] = useState<{
+    user: any;
+    interviews: any[];
+    subscriptions: any[];
+    activity: any[];
+  } | null>(null);
 
   const { token } = useAuth();
 
@@ -103,6 +113,42 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error fetching users:', error);
     }
+  };
+
+  const fetchUserDetails = async (id: number) => {
+    setDetailsLoading(true);
+    setDetailsOpen(true);
+    try {
+      const response = await apiRequest(`api/admin/users/${id}`, {}, token);
+      if (response.ok) {
+        const data = await response.json();
+        setUserDetails(data);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to load user details",
+          duration: 5000,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      toast({
+        title: "Error",
+        description: "Unable to fetch user details.",
+        duration: 5000,
+        variant: "destructive",
+      });
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return "N/A";
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? "N/A" : date.toLocaleString();
   };
 
   const stats = [
@@ -320,7 +366,7 @@ export default function AdminDashboard() {
                           {new Date(user.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => fetchUserDetails(user.id)}>
                             <Eye className="w-4 h-4" />
                           </Button>
                         </TableCell>
@@ -379,6 +425,51 @@ export default function AdminDashboard() {
         )}
       </div>
     </div>
+
+      <Dialog
+        open={detailsOpen}
+        onOpenChange={(open) => {
+          setDetailsOpen(open);
+          if (!open) {
+            setUserDetails(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>
+              Review user information, recent interviews, and activity logs.
+            </DialogDescription>
+          </DialogHeader>
+
+          {detailsLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : userDetails ? (
+            <div className="space-y-8">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="rounded-xl border border-border/50 bg-background/50 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <UserCircle className="w-5 h-5 text-primary" />
+                    <p className="font-semibold">Profile</p>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <p><span className="text-muted-foreground">Name:</span> {userDetails.user.name}</p>
+                    <p className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      {userDetails.user.email}
+                    </p>
+                    <p><span className="text-muted-foreground">Role:</span> {userDetails.user.role}</p>
+                    <p><span className="text-muted-foreground">Domain:</span> {userDetails.user.domain_id || "N/A"}</p>
+                    <p><span className="text-muted-foreground">Level:</span> {userDetails.user.level || "N/A"}</p>
+                    <p><span className="text-muted-foreground">Joined:</span> {formatDate(userDetails.user.created_at)}</p>
+                    <p><span className="text-muted-foreground">Last Active:</span> {formatDate(userDetails.user.last_login)}</p>
+                  </div>
+                </div>
+
+                <div className brush etc>
   );
 }
 
