@@ -170,6 +170,10 @@ export default function InterviewSession() {
       }
 
       const data = await response.json();
+      if (data.report) {
+        localStorage.setItem('latestReport', JSON.stringify(data.report));
+        localStorage.setItem('latestInterviewId', interviewId);
+      }
       const firstMessage = data.message;
       const questionId = data.questionId;
 
@@ -248,7 +252,11 @@ export default function InterviewSession() {
         throw new Error('Failed to get next question');
       }
 
-      const data = await response.json();
+        const data = await response.json();
+        if (data.report) {
+          localStorage.setItem('latestReport', JSON.stringify(data.report));
+          localStorage.setItem('latestInterviewId', interviewId);
+        }
       const nextMessage = data.message;
       const nextQuestionId = data.questionId;
       const interviewComplete = data.interviewComplete;
