@@ -56,9 +56,18 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (token) {
       fetchDashboardData();
-      fetchUsers();
+      fetchUsers(currentPage, searchTerm);
     }
   }, [currentPage, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    const handle = setTimeout(() => {
+      setCurrentPage(1);
+      fetchUsers(1, searchTerm);
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [searchTerm, token]);
 
   const fetchDashboardData = async () => {
     try {
@@ -83,9 +92,9 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page = 1, search = "") => {
     try {
-      const response = await apiRequest(`api/admin/users?page=${currentPage}&limit=20&search=${searchTerm}`, {}, token);
+      const response = await apiRequest(`api/admin/users?page=${page}&limit=20&search=${encodeURIComponent(search)}`, {}, token);
 
       if (response.ok) {
         const data = await response.json();

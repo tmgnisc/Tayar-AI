@@ -46,10 +46,10 @@ router.get('/dashboard', async (req: AuthRequest, res) => {
 
       // Subscription breakdown
       const [subscriptions]: any = await connection.query(
-        `SELECT plan_type, COUNT(*) as count 
+        `SELECT subscription_type, COUNT(*) as count 
          FROM users 
          WHERE subscription_type IN ('pro', 'enterprise') 
-         GROUP BY plan_type`
+         GROUP BY subscription_type`
       );
 
       // Recent users growth
