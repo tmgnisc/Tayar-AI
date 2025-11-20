@@ -13,7 +13,11 @@ import { initializeDatabase } from './config/database.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Load env from project root and then from server/.env (server overrides root)
+dotenv.config({ path: join(__dirname, '..', '.env') });
 dotenv.config({ path: join(__dirname, '.env') });
+
+console.log('[Env] STRIPE_PRO_PRICE_ID:', process.env.STRIPE_PRO_PRICE_ID ? 'SET' : 'NOT SET');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
