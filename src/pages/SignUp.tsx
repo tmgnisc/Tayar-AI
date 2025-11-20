@@ -48,7 +48,7 @@ export default function SignUp() {
 
   return (
     <div className="min-h-screen gradient-mesh">
-      <Navbar showAuth={false} />
+      <Navbar />
       
       <div className="relative min-h-screen flex items-center justify-center px-4 pt-16">
         <FloatingParticles />

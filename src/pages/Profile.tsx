@@ -266,7 +266,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen gradient-mesh">
-      <Navbar showAuth={false} showProfile={false} />
+      <Navbar />
       
       <div className="container mx-auto px-4 pt-24 pb-12">
         <motion.div

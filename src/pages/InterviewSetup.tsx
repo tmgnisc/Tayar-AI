@@ -171,7 +171,7 @@ export default function InterviewSetup() {
 
   return (
     <div className="min-h-screen gradient-mesh">
-      <Navbar showAuth={false} showProfile={true} />
+      <Navbar />
       
       <div className="relative min-h-screen flex items-center justify-center px-4 pt-16">
         <FloatingParticles />

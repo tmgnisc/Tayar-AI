@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Brain, LogOut } from "lucide-react";
@@ -14,20 +13,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-interface NavbarProps {
-  showAuth?: boolean;
-  showProfile?: boolean;
-}
-
-export const Navbar = ({ showAuth = true, showProfile = false }: NavbarProps) => {
+export const Navbar = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const isAuthenticated = !!user;
-
-  useEffect(() => {
-    console.log('[Navbar] user data', user);
-    console.log('[Navbar] avatar_url', user?.avatar_url);
-  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -124,7 +113,7 @@ export const Navbar = ({ showAuth = true, showProfile = false }: NavbarProps) =>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        ) : showAuth ? (
+        ) : (
           <div className="flex items-center gap-4">
             <Link to="/auth/signin">
               <Button variant="ghost" className="hover:bg-primary/10">
@@ -137,7 +126,7 @@ export const Navbar = ({ showAuth = true, showProfile = false }: NavbarProps) =>
               </Button>
             </Link>
           </div>
-        ) : null}
+        )}
       </div>
     </motion.nav>
   );

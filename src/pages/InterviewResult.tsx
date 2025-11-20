@@ -177,7 +177,7 @@ export default function InterviewResult() {
   if (!report) {
     return (
       <div className="min-h-screen gradient-mesh">
-        <Navbar showAuth={false} showProfile={true} />
+        <Navbar />
         <div className="container mx-auto px-4 pt-24 pb-12 text-center">
           <Card className="glass-card border-border/50 inline-block p-6">
             <p className="text-muted-foreground mb-4">
@@ -194,7 +194,7 @@ export default function InterviewResult() {
 
   return (
     <div className="min-h-screen gradient-mesh">
-      <Navbar showAuth={false} showProfile={true} />
+      <Navbar />
       
       <div className="container mx-auto px-4 pt-24 pb-12">
         <motion.div

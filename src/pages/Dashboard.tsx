@@ -77,7 +77,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen gradient-mesh">
-      <Navbar showAuth={false} showProfile={true} />
+      <Navbar />
       
       <div className="container mx-auto px-4 pt-24 pb-12">
         <motion.div

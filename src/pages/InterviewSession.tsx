@@ -416,7 +416,7 @@ export default function InterviewSession() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <Navbar showAuth={false} showProfile={true} />
+      <Navbar />
       
       {/* Google Meet-like Video Call Interface */}
       <div className="h-[calc(100vh-64px)] flex flex-col">
