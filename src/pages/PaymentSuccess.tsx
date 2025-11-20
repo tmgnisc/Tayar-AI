@@ -18,6 +18,7 @@ export default function PaymentSuccess() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [verified, setVerified] = useState(false);
+  const redirectDelay = 5000; // 5 seconds
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -77,6 +78,17 @@ export default function PaymentSuccess() {
     verifyPayment();
   }, [sessionId, token, user, updateUser, toast]);
 
+  useEffect(() => {
+    if (!verified) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      navigate("/dashboard");
+    }, redirectDelay);
+
+    return () => clearTimeout(timer);
+  }, [verified, navigate]);
+
   return (
     <div className="min-h-screen gradient-mesh">
       <Navbar />
@@ -107,6 +119,9 @@ export default function PaymentSuccess() {
                   <CardDescription className="text-lg mb-6">
                     Thank you for your purchase. Your premium subscription has been activated.
                   </CardDescription>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    You&apos;ll be redirected to your dashboard in a few seconds.
+                  </p>
                   <div className="space-y-4">
                     <Button
                       onClick={() => navigate("/dashboard")}
