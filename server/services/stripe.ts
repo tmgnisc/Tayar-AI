@@ -14,43 +14,47 @@ export async function createCheckoutSession(
   userEmail: string,
   planType: 'pro' | 'enterprise' = 'pro'
 ): Promise<Stripe.Checkout.Session> {
-  // Define price IDs - these should be created in Stripe Dashboard
-  // For test mode, create a product and price in Stripe Dashboard and use the test price ID
-  const priceIds: Record<string, string> = {
-    pro: process.env.STRIPE_PRO_PRICE_ID || '',
-    enterprise: process.env.STRIPE_ENTERPRISE_PRICE_ID || '',
+  const planConfig: Record<
+    'pro' | 'enterprise',
+    { amount: number; name: string; description: string }
+  > = {
+    pro: {
+      amount: 29_00,
+      name: 'Tayar.ai Pro Plan',
+      description: 'Premium access with unlimited interviews',
+    },
+    enterprise: {
+      amount: 40_00,
+      name: 'Tayar.ai Enterprise Plan',
+      description: 'Enterprise-grade access with team support',
+    },
   };
 
-  const priceId = priceIds[planType];
-
-  if (!priceId) {
-    throw new Error(
-      `STRIPE_${planType.toUpperCase()}_PRICE_ID is not set. ` +
-      `Please create a product and price in Stripe Dashboard and add the price ID to your .env file.`
-    );
-  }
+  const plan = planConfig[planType];
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     line_items: [
       {
-        price: priceId,
+        price_data: {
+          currency: 'usd',
+          unit_amount: plan.amount,
+          product_data: {
+            name: plan.name,
+            description: plan.description,
+          },
+        },
         quantity: 1,
       },
     ],
-    mode: 'subscription',
+    mode: 'payment',
     success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/cancel`,
     customer_email: userEmail,
     metadata: {
       userId: userId.toString(),
       planType: planType,
-    },
-    subscription_data: {
-      metadata: {
-        userId: userId.toString(),
-        planType: planType,
-      },
+      amount: (plan.amount / 100).toString(),
     },
   });
 
