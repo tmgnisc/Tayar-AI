@@ -9,51 +9,28 @@ This guide will help you set up Stripe payments for premium subscriptions.
 
 ## Environment Variables
 
-Add the following environment variables to your `.env` file in the `server` directory:
+Add the following environment variables to your `.env` file (either in the project root or `server/.env`):
 
 ```env
 # Stripe Configuration
-STRIPE_SECRET_KEY=sk_test_...  # Your Stripe secret key (test mode)
-STRIPE_WEBHOOK_SECRET=whsec_...  # Webhook signing secret (get from Stripe Dashboard)
-STRIPE_PRO_PRICE_ID=price_...  # Price ID for Pro plan ($29/month)
-STRIPE_ENTERPRISE_PRICE_ID=price_...  # Price ID for Enterprise plan (optional)
+STRIPE_SECRET_KEY=sk_test_...     # Your Stripe secret key (test mode)
+STRIPE_WEBHOOK_SECRET=whsec_...   # Webhook signing secret (get from Stripe Dashboard)
 
 # Frontend URL (for redirects after payment)
 FRONTEND_URL=http://localhost:5173  # Change to your production URL
 ```
 
-## Setting Up Stripe Products and Prices
+> ✅ **No products or price IDs required.**  
+> The backend now uses dynamic prices for $29 (Pro) and $40 (Enterprise).
 
-### Step 1: Create Products in Stripe Dashboard
+## Webhook Setup
 
-1. Go to [Stripe Dashboard](https://dashboard.stripe.com)
-2. Navigate to **Products** → **Add Product**
-3. Create a product for "Pro Plan":
-   - Name: "Tayar.ai Pro"
-   - Description: "Premium subscription for unlimited interviews"
-   - Pricing: $29/month (recurring)
-   - Copy the **Price ID** (starts with `price_`) and add it to `STRIPE_PRO_PRICE_ID`
-
-4. (Optional) Create a product for "Enterprise Plan":
-   - Name: "Tayar.ai Enterprise"
-   - Description: "Enterprise subscription with team features"
-   - Pricing: Custom (you can set your own price)
-   - Copy the **Price ID** and add it to `STRIPE_ENTERPRISE_PRICE_ID`
-
-### Step 2: Set Up Webhooks
-
-1. In Stripe Dashboard, go to **Developers** → **Webhooks**
+1. In Stripe Dashboard, go to **Developers → Webhooks**
 2. Click **Add endpoint**
-3. Enter your webhook URL: `https://your-domain.com/api/webhooks/stripe`
-   - For local development, use a tool like [ngrok](https://ngrok.com) or [Stripe CLI](https://stripe.com/docs/stripe-cli)
-4. Select events to listen to:
-   - `checkout.session.completed`
-   - `customer.subscription.created`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-   - `invoice.payment_succeeded`
-   - `invoice.payment_failed`
-5. Copy the **Signing secret** (starts with `whsec_`) and add it to `STRIPE_WEBHOOK_SECRET`
+3. Endpoint URL: `https://your-domain.com/api/webhooks/stripe`
+   - For local development, use [ngrok](https://ngrok.com) or [Stripe CLI](https://stripe.com/docs/stripe-cli)
+4. Subscribe to the `checkout.session.completed` event
+5. Copy the **Signing secret** (starts with `whsec_`) and set `STRIPE_WEBHOOK_SECRET`
 
 ### Step 3: Test Mode
 
@@ -102,10 +79,10 @@ This will give you a webhook signing secret that you can use for local testing.
 - Verify `STRIPE_WEBHOOK_SECRET` is correct
 - Check server logs for webhook errors
 
-### "Price ID not found" error
-- Verify `STRIPE_PRO_PRICE_ID` is set correctly
-- Ensure the price ID exists in your Stripe account
-- Check that you're using the correct Stripe mode (test vs live)
+### "Failed to create checkout session"
+- Ensure `STRIPE_SECRET_KEY` is set
+- Confirm the backend was restarted after updating `.env`
+- Check Stripe Dashboard logs for additional error details
 
 ### Webhook signature verification fails
 - Ensure webhook endpoint uses raw body (already configured)

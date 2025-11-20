@@ -17,8 +17,6 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '..', '.env') });
 dotenv.config({ path: join(__dirname, '.env') });
 
-console.log('[Env] STRIPE_PRO_PRICE_ID:', process.env.STRIPE_PRO_PRICE_ID ? 'SET' : 'NOT SET');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
