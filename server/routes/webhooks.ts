@@ -1,6 +1,7 @@
 import express from 'express';
 import { pool } from '../config/database';
 import { generateInterviewFeedback } from '../services/groq';
+import { stripe } from '../services/stripe';
 
 const router = express.Router();
 
@@ -144,6 +145,274 @@ async function handleConversationUpdate(event: any) {
 
   // Optionally store conversation updates in real-time
   console.log('Conversation update:', message);
+}
+
+// Stripe webhook endpoint
+// Note: This endpoint must use raw body for signature verification
+// The raw body middleware is applied in server/index.ts
+router.post('/stripe', async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+
+  if (!sig) {
+    return res.status(400).json({ error: 'Missing stripe-signature header' });
+  }
+
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error('STRIPE_WEBHOOK_SECRET is not set');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err: any) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+  }
+
+  console.log('💳 Stripe webhook event:', event.type);
+
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object);
+        break;
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdate(event.data.object);
+        break;
+      case 'customer.subscription.deleted':
+        await handleSubscriptionCancelled(event.data.object);
+        break;
+      case 'invoice.payment_succeeded':
+        await handleInvoicePaymentSucceeded(event.data.object);
+        break;
+      case 'invoice.payment_failed':
+        await handleInvoicePaymentFailed(event.data.object);
+        break;
+      default:
+        console.log('Unhandled Stripe event type:', event.type);
+    }
+
+    res.json({ received: true });
+  } catch (error: any) {
+    console.error('Error handling Stripe webhook:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+async function handleCheckoutSessionCompleted(session: any) {
+  const userId = parseInt(session.metadata?.userId || '0');
+  const planType = (session.metadata?.planType || 'pro') as 'pro' | 'enterprise';
+
+  if (!userId) {
+    console.error('User ID not found in session metadata');
+    return;
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    // Calculate subscription dates (monthly subscription)
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    // Update user subscription
+    await connection.query(
+      `UPDATE users 
+       SET subscription_type = ?,
+           subscription_status = 'active',
+           subscription_start_date = ?,
+           subscription_end_date = ?
+       WHERE id = ?`,
+      [planType, startDate, endDate, userId]
+    );
+
+    // Create subscription record
+    await connection.query(
+      `INSERT INTO subscriptions 
+       (user_id, plan_type, amount, status, start_date, end_date, payment_method, transaction_id)
+       VALUES (?, ?, ?, 'active', ?, ?, 'stripe', ?)`,
+      [
+        userId,
+        planType,
+        29.00, // $29 for pro plan
+        startDate,
+        endDate,
+        session.id,
+      ]
+    );
+
+    // Log activity
+    await connection.query(
+      'INSERT INTO activity_logs (user_id, activity_type, description) VALUES (?, ?, ?)',
+      [userId, 'subscription_activated', `Subscription activated: ${planType} plan via Stripe`]
+    );
+
+    console.log(`✅ Subscription activated for user ${userId}, plan: ${planType}`);
+  } finally {
+    connection.release();
+  }
+}
+
+async function handleSubscriptionUpdate(subscription: any) {
+  const userId = parseInt(subscription.metadata?.userId || '0');
+  const planType = (subscription.metadata?.planType || 'pro') as 'pro' | 'enterprise';
+
+  if (!userId) {
+    console.error('User ID not found in subscription metadata');
+    return;
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    const startDate = new Date(subscription.current_period_start * 1000);
+    const endDate = new Date(subscription.current_period_end * 1000);
+    const status = subscription.status === 'active' ? 'active' : 'cancelled';
+
+    // Update user subscription
+    await connection.query(
+      `UPDATE users 
+       SET subscription_type = ?,
+           subscription_status = ?,
+           subscription_start_date = ?,
+           subscription_end_date = ?
+       WHERE id = ?`,
+      [planType, status, startDate, endDate, userId]
+    );
+
+    console.log(`✅ Subscription updated for user ${userId}, status: ${status}`);
+  } finally {
+    connection.release();
+  }
+}
+
+async function handleSubscriptionCancelled(subscription: any) {
+  const userId = parseInt(subscription.metadata?.userId || '0');
+
+  if (!userId) {
+    console.error('User ID not found in subscription metadata');
+    return;
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    // Update user subscription to cancelled
+    await connection.query(
+      `UPDATE users 
+       SET subscription_status = 'cancelled'
+       WHERE id = ?`,
+      [userId]
+    );
+
+    // Update subscription record
+    await connection.query(
+      `UPDATE subscriptions 
+       SET status = 'cancelled'
+       WHERE user_id = ? AND status = 'active'`,
+      [userId]
+    );
+
+    // Log activity
+    await connection.query(
+      'INSERT INTO activity_logs (user_id, activity_type, description) VALUES (?, ?, ?)',
+      [userId, 'subscription_cancelled', 'Subscription cancelled via Stripe']
+    );
+
+    console.log(`✅ Subscription cancelled for user ${userId}`);
+  } finally {
+    connection.release();
+  }
+}
+
+async function handleInvoicePaymentSucceeded(invoice: any) {
+  const subscriptionId = invoice.subscription;
+  
+  if (!subscriptionId) {
+    return;
+  }
+
+  // Retrieve subscription to get user ID
+  try {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const userId = parseInt(subscription.metadata?.userId || '0');
+    const planType = (subscription.metadata?.planType || 'pro') as 'pro' | 'enterprise';
+
+    if (!userId) {
+      return;
+    }
+
+    const connection = await pool.getConnection();
+    try {
+      // Update subscription end date (renewal)
+      const endDate = new Date(subscription.current_period_end * 1000);
+      
+      await connection.query(
+        `UPDATE users 
+         SET subscription_end_date = ?,
+             subscription_status = 'active'
+         WHERE id = ?`,
+        [endDate, userId]
+      );
+
+      // Create new subscription record for renewal
+      await connection.query(
+        `INSERT INTO subscriptions 
+         (user_id, plan_type, amount, status, start_date, end_date, payment_method, transaction_id)
+         VALUES (?, ?, ?, 'active', NOW(), ?, 'stripe', ?)`,
+        [
+          userId,
+          planType,
+          29.00,
+          endDate,
+          invoice.id,
+        ]
+      );
+
+      console.log(`✅ Subscription renewed for user ${userId}`);
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Error handling invoice payment succeeded:', error);
+  }
+}
+
+async function handleInvoicePaymentFailed(invoice: any) {
+  const subscriptionId = invoice.subscription;
+  
+  if (!subscriptionId) {
+    return;
+  }
+
+  try {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const userId = parseInt(subscription.metadata?.userId || '0');
+
+    if (!userId) {
+      return;
+    }
+
+    const connection = await pool.getConnection();
+    try {
+      // Log payment failure
+      await connection.query(
+        'INSERT INTO activity_logs (user_id, activity_type, description) VALUES (?, ?, ?)',
+        [userId, 'payment_failed', 'Subscription payment failed via Stripe']
+      );
+
+      console.log(`⚠️ Payment failed for user ${userId}`);
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Error handling invoice payment failed:', error);
+  }
 }
 
 export default router;

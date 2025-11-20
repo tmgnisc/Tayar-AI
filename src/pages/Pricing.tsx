@@ -1,12 +1,64 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Zap, Crown, Rocket } from "lucide-react";
+import { Check, Zap, Crown, Rocket, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiRequest } from "@/config/api";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Pricing() {
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState<string | null>(null);
+
+  const handleCheckout = async (planType: 'pro' | 'enterprise') => {
+    if (!user || !token) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to purchase a premium plan",
+        variant: "default",
+      });
+      navigate('/auth/signin');
+      return;
+    }
+
+    setLoading(planType);
+    try {
+      const response = await apiRequest('api/payment/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ planType }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      toast({
+        title: "Checkout failed",
+        description: error.message || "Failed to start checkout process. Please try again.",
+        variant: "destructive",
+      });
+      setLoading(null);
+    }
+  };
   const plans = [
     {
       name: "Free",
@@ -149,12 +201,21 @@ export default function Pricing() {
                       ))}
                     </ul>
                     <div className="pt-4">
-                      {plan.buttonVariant === "default" ? (
-                        <Link to="/auth/signup">
-                          <Button className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 h-12 rounded-xl">
-                            {plan.buttonText}
-                          </Button>
-                        </Link>
+                      {plan.name === "Pro" ? (
+                        <Button
+                          className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 h-12 rounded-xl"
+                          onClick={() => handleCheckout('pro')}
+                          disabled={loading === 'pro'}
+                        >
+                          {loading === 'pro' ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            plan.buttonText
+                          )}
+                        </Button>
                       ) : plan.buttonText === "Contact Sales" ? (
                         <Link to="/contact">
                           <Button variant="outline" className="w-full border-primary/30 hover:bg-primary/10 h-12 rounded-xl">

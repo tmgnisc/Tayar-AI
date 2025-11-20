@@ -1,0 +1,131 @@
+# Stripe Payment Integration Setup Guide
+
+This guide will help you set up Stripe payments for premium subscriptions.
+
+## Prerequisites
+
+1. A Stripe account (sign up at https://stripe.com)
+2. Stripe API keys (available in Stripe Dashboard)
+
+## Environment Variables
+
+Add the following environment variables to your `.env` file in the `server` directory:
+
+```env
+# Stripe Configuration
+STRIPE_SECRET_KEY=sk_test_...  # Your Stripe secret key (test mode)
+STRIPE_WEBHOOK_SECRET=whsec_...  # Webhook signing secret (get from Stripe Dashboard)
+STRIPE_PRO_PRICE_ID=price_...  # Price ID for Pro plan ($29/month)
+STRIPE_ENTERPRISE_PRICE_ID=price_...  # Price ID for Enterprise plan (optional)
+
+# Frontend URL (for redirects after payment)
+FRONTEND_URL=http://localhost:5173  # Change to your production URL
+```
+
+## Setting Up Stripe Products and Prices
+
+### Step 1: Create Products in Stripe Dashboard
+
+1. Go to [Stripe Dashboard](https://dashboard.stripe.com)
+2. Navigate to **Products** → **Add Product**
+3. Create a product for "Pro Plan":
+   - Name: "Tayar.ai Pro"
+   - Description: "Premium subscription for unlimited interviews"
+   - Pricing: $29/month (recurring)
+   - Copy the **Price ID** (starts with `price_`) and add it to `STRIPE_PRO_PRICE_ID`
+
+4. (Optional) Create a product for "Enterprise Plan":
+   - Name: "Tayar.ai Enterprise"
+   - Description: "Enterprise subscription with team features"
+   - Pricing: Custom (you can set your own price)
+   - Copy the **Price ID** and add it to `STRIPE_ENTERPRISE_PRICE_ID`
+
+### Step 2: Set Up Webhooks
+
+1. In Stripe Dashboard, go to **Developers** → **Webhooks**
+2. Click **Add endpoint**
+3. Enter your webhook URL: `https://your-domain.com/api/webhooks/stripe`
+   - For local development, use a tool like [ngrok](https://ngrok.com) or [Stripe CLI](https://stripe.com/docs/stripe-cli)
+4. Select events to listen to:
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_succeeded`
+   - `invoice.payment_failed`
+5. Copy the **Signing secret** (starts with `whsec_`) and add it to `STRIPE_WEBHOOK_SECRET`
+
+### Step 3: Test Mode
+
+For testing, use Stripe's test mode:
+- Test API keys start with `sk_test_` and `pk_test_`
+- Use test card numbers from [Stripe Testing](https://stripe.com/docs/testing)
+- Example test card: `4242 4242 4242 4242` (any future expiry date, any CVC)
+
+## Testing the Integration
+
+1. Start your server: `npm run server`
+2. Start your frontend: `npm run dev`
+3. Sign in to your account
+4. Go to the Pricing page
+5. Click "Start Pro Trial" on the Pro plan
+6. You'll be redirected to Stripe Checkout
+7. Use a test card: `4242 4242 4242 4242`
+8. Complete the payment
+9. You should be redirected back to the success page
+
+## Webhook Testing (Local Development)
+
+For local development, use Stripe CLI to forward webhooks:
+
+```bash
+# Install Stripe CLI
+# Then run:
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
+
+This will give you a webhook signing secret that you can use for local testing.
+
+## Production Setup
+
+1. Switch to live mode in Stripe Dashboard
+2. Update environment variables with live keys:
+   - `STRIPE_SECRET_KEY` → use `sk_live_...`
+   - `STRIPE_WEBHOOK_SECRET` → use production webhook secret
+3. Update `FRONTEND_URL` to your production domain
+4. Set up production webhook endpoint in Stripe Dashboard
+
+## Troubleshooting
+
+### Payment succeeds but subscription not activated
+- Check webhook logs in Stripe Dashboard
+- Verify `STRIPE_WEBHOOK_SECRET` is correct
+- Check server logs for webhook errors
+
+### "Price ID not found" error
+- Verify `STRIPE_PRO_PRICE_ID` is set correctly
+- Ensure the price ID exists in your Stripe account
+- Check that you're using the correct Stripe mode (test vs live)
+
+### Webhook signature verification fails
+- Ensure webhook endpoint uses raw body (already configured)
+- Verify `STRIPE_WEBHOOK_SECRET` matches the webhook endpoint secret
+- Check that webhook URL is accessible
+
+## Database Schema
+
+The integration uses the following database fields:
+- `users.subscription_type`: 'free', 'pro', or 'enterprise'
+- `users.subscription_status`: 'active', 'cancelled', or 'expired'
+- `users.subscription_start_date`: Start date of subscription
+- `users.subscription_end_date`: End date of subscription
+- `subscriptions` table: Records all subscription transactions
+
+## Support
+
+For issues or questions:
+1. Check Stripe Dashboard logs
+2. Review server logs
+3. Verify environment variables are set correctly
+4. Test with Stripe test mode first
+
