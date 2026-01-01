@@ -41,21 +41,62 @@ export default function PaymentSuccess() {
 
         const data = await response.json();
 
-        if (response.ok && data.status === "complete") {
-          setVerified(true);
-          
-          // Update user subscription status in context
-          if (user) {
-            updateUser({
-              subscription_type: "pro",
-              subscription_status: "active",
+        if (response.ok && data.status === "complete" && data.paymentStatus === "paid") {
+          // Try to manually activate subscription (fallback if webhook hasn't fired)
+          try {
+            const activateResponse = await apiRequest(
+              `api/payment/activate-subscription/${sessionId}`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              },
+              token
+            );
+
+            const activateData = await activateResponse.json();
+            
+            if (activateResponse.ok) {
+              // Subscription activated successfully
+              const planType = activateData.planType || "pro";
+              
+              // Update user subscription status in context
+              if (user) {
+                updateUser({
+                  subscription_type: planType,
+                  subscription_status: "active",
+                });
+              }
+
+              setVerified(true);
+              toast({
+                title: "Payment successful!",
+                description: `Your ${planType.toUpperCase()} subscription has been activated.`,
+              });
+            } else {
+              // Payment verified but activation failed (might already be activated)
+              console.warn("Activation response:", activateData);
+              if (activateData.alreadyActivated) {
+                setVerified(true);
+                toast({
+                  title: "Payment successful!",
+                  description: "Your subscription is already active.",
+                });
+              } else {
+                throw new Error(activateData.message || "Failed to activate subscription");
+              }
+            }
+          } catch (activateError: any) {
+            console.error("Activation error:", activateError);
+            // Payment is verified, but activation failed - still show success
+            // The webhook might activate it later
+            setVerified(true);
+            toast({
+              title: "Payment verified!",
+              description: "Your payment was successful. Subscription activation may take a moment.",
             });
           }
-
-          toast({
-            title: "Payment successful!",
-            description: "Your premium subscription has been activated.",
-          });
         } else {
           toast({
             title: "Payment verification failed",

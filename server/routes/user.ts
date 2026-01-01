@@ -719,7 +719,7 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         );
 
         return res.json({
-          message: "I appreciate your question, but let's focus on the current topic. Please answer the question I asked about the technical concepts. ",
+          message: "Don't go off topic. Please focus on answering the question I asked. " + currentQuestion.question,
           questionId: currentQuestionId, // Ask the same question again
           question: currentQuestion.question,
           evaluation: {

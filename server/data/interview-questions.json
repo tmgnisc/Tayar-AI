@@ -109,7 +109,7 @@
           "react": 6,
           "framework": 6
         },
-        "defaultNext": null,
+        "defaultNext": 6,
         "lowKnowledgePhrases": [
           "i don't know",
           "sorry",
@@ -120,6 +120,283 @@
           "no idea"
         ],
         "systemReplyOnLowKnowledge": "No problem. The DOM lets JavaScript interact with the webpage. Good effort!"
+      },
+      {
+        "id": 6,
+        "question": "What are JavaScript functions and how do you create them?",
+        "expectedSummary": "Functions are reusable blocks of code that perform specific tasks. They can be created using function declarations, function expressions, or arrow functions.",
+        "keywords": ["function", "declaration", "expression", "arrow", "reusable", "code", "parameters"],
+        "routing": {
+          "async": 7,
+          "promise": 7,
+          "callback": 7,
+          "array": 8
+        },
+        "defaultNext": 7,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "i haven't read about this",
+          "i haven't studied this",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "That's okay. Functions help organize code into reusable pieces. Let's continue."
+      },
+      {
+        "id": 7,
+        "question": "What are JavaScript events and how do you handle them?",
+        "expectedSummary": "Events are user interactions like clicks, keypresses, or form submissions. They can be handled using event listeners.",
+        "keywords": ["event", "click", "listener", "handler", "interaction", "addEventListener"],
+        "routing": {
+          "async": 8,
+          "promise": 8,
+          "api": 8
+        },
+        "defaultNext": 8,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "i haven't read about this",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "No worries. Events make web pages interactive. Let's move on."
+      },
+      {
+        "id": 8,
+        "question": "What are arrays in JavaScript and how do you manipulate them?",
+        "expectedSummary": "Arrays are ordered collections of data. They can be manipulated using methods like push, pop, map, filter, and forEach.",
+        "keywords": ["array", "push", "pop", "map", "filter", "forEach", "collection", "data"],
+        "routing": {
+          "object": 9,
+          "json": 9,
+          "react": 10
+        },
+        "defaultNext": 9,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "It's fine. Arrays store lists of data. Let's try another question."
+      },
+      {
+        "id": 9,
+        "question": "What are JavaScript objects and how do you access their properties?",
+        "expectedSummary": "Objects are collections of key-value pairs. Properties can be accessed using dot notation or bracket notation.",
+        "keywords": ["object", "property", "key", "value", "dot notation", "bracket notation"],
+        "routing": {
+          "json": 10,
+          "api": 10,
+          "react": 10
+        },
+        "defaultNext": 10,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "That's alright. Objects store related data together. Good effort!"
+      },
+      {
+        "id": 10,
+        "question": "What is React and why is it popular?",
+        "expectedSummary": "React is a JavaScript library for building user interfaces. It's popular because of its component-based architecture and virtual DOM.",
+        "keywords": ["react", "library", "component", "virtual dom", "ui", "interface", "jsx"],
+        "routing": {
+          "component": 11,
+          "state": 11,
+          "props": 11
+        },
+        "defaultNext": null,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "No problem. React helps build interactive web applications. Great job on the interview!"
+      }
+    ],
+    "intermediate": [
+      {
+        "id": 1,
+        "question": "Explain closures in JavaScript with an example.",
+        "expectedSummary": "Closures allow inner functions to access variables from their outer scope even after the outer function has returned.",
+        "keywords": ["closure", "scope", "inner function", "outer function", "variable", "access"],
+        "routing": {
+          "this": 2,
+          "context": 2,
+          "bind": 2,
+          "async": 3
+        },
+        "defaultNext": 2,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "i haven't studied this",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "That's okay. Closures are an advanced concept. Let's try something else."
+      },
+      {
+        "id": 2,
+        "question": "What is 'this' in JavaScript and how does it work?",
+        "expectedSummary": "'this' refers to the context in which a function is called. Its value depends on how the function is invoked.",
+        "keywords": ["this", "context", "bind", "call", "apply", "arrow function", "scope"],
+        "routing": {
+          "prototype": 3,
+          "class": 3,
+          "async": 4
+        },
+        "defaultNext": 3,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "No worries. 'this' can be tricky. Let's continue."
+      },
+      {
+        "id": 3,
+        "question": "What are Promises in JavaScript and how do you use them?",
+        "expectedSummary": "Promises represent the eventual completion of an asynchronous operation. They can be used with .then(), .catch(), or async/await.",
+        "keywords": ["promise", "async", "await", "then", "catch", "asynchronous", "resolve", "reject"],
+        "routing": {
+          "async": 4,
+          "await": 4,
+          "fetch": 4,
+          "api": 4
+        },
+        "defaultNext": 4,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "That's fine. Promises handle asynchronous operations. Let's move on."
+      },
+      {
+        "id": 4,
+        "question": "Explain the difference between let, const, and var in JavaScript.",
+        "expectedSummary": "var is function-scoped and can be redeclared. let and const are block-scoped. const cannot be reassigned, while let can.",
+        "keywords": ["let", "const", "var", "scope", "block", "function", "hoisting"],
+        "routing": {
+          "hoisting": 5,
+          "temporal": 5,
+          "react": 6
+        },
+        "defaultNext": 5,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "It's okay. These are important concepts. Let's try another question."
+      },
+      {
+        "id": 5,
+        "question": "What is the Virtual DOM in React and why is it used?",
+        "expectedSummary": "The Virtual DOM is a JavaScript representation of the real DOM. React uses it to efficiently update the UI by comparing changes.",
+        "keywords": ["virtual dom", "react", "dom", "diffing", "reconciliation", "performance", "update"],
+        "routing": {
+          "component": 6,
+          "state": 6,
+          "props": 6
+        },
+        "defaultNext": 6,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "No problem. Virtual DOM improves React's performance. Good effort!"
+      },
+      {
+        "id": 6,
+        "question": "What is the difference between React state and props?",
+        "expectedSummary": "State is internal data managed by a component, while props are data passed from parent to child components. State can change, props are read-only.",
+        "keywords": ["state", "props", "component", "parent", "child", "mutable", "immutable"],
+        "routing": {
+          "hook": 7,
+          "usestate": 7,
+          "useeffect": 7
+        },
+        "defaultNext": null,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "That's alright. State and props are fundamental React concepts. Great job!"
+      }
+    ],
+    "advanced": [
+      {
+        "id": 1,
+        "question": "Explain React's component lifecycle methods and hooks.",
+        "expectedSummary": "Lifecycle methods like componentDidMount and componentWillUnmount manage component behavior. Hooks like useEffect provide similar functionality in functional components.",
+        "keywords": ["lifecycle", "componentdidmount", "useeffect", "hook", "mount", "unmount", "update"],
+        "routing": {
+          "performance": 2,
+          "memo": 2,
+          "optimization": 2
+        },
+        "defaultNext": 2,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "That's okay. Lifecycle methods are advanced topics. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "How do you optimize React application performance?",
+        "expectedSummary": "Performance can be optimized using React.memo, useMemo, useCallback, code splitting, lazy loading, and avoiding unnecessary re-renders.",
+        "keywords": ["performance", "memo", "usememo", "usecallback", "optimization", "rerender", "lazy"],
+        "routing": {
+          "testing": 3,
+          "redux": 4,
+          "context": 4
+        },
+        "defaultNext": 3,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "No worries. Performance optimization is complex. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "What is Redux and when would you use it?",
+        "expectedSummary": "Redux is a state management library for JavaScript applications. It's useful for managing complex application state across multiple components.",
+        "keywords": ["redux", "state management", "store", "action", "reducer", "dispatch"],
+        "routing": {
+          "middleware": 4,
+          "thunk": 4,
+          "saga": 4
+        },
+        "defaultNext": null,
+        "lowKnowledgePhrases": [
+          "i don't know",
+          "sorry",
+          "not sure",
+          "no idea"
+        ],
+        "systemReplyOnLowKnowledge": "That's fine. Redux is for complex state management. Excellent work on the interview!"
       }
     ]
   }

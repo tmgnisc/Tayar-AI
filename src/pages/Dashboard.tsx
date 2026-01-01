@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Target, TrendingUp, Award, Clock, Play, Calendar } from "lucide-react";
+import { Target, TrendingUp, Award, Clock, Play, Calendar, Crown, Zap } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/config/api";
@@ -20,6 +21,7 @@ export default function Dashboard() {
     achievements: 0,
   });
   const [recentInterviews, setRecentInterviews] = useState<any[]>([]);
+  const [subscription, setSubscription] = useState<{ type: string; status: string } | null>(null);
 
   useEffect(() => {
     if (token && user) {
@@ -40,7 +42,15 @@ export default function Dashboard() {
           achievements: data.stats.achievements || 0,
         });
         setRecentInterviews(data.recent_interviews || []);
-        if (data.user) {
+        if (data.subscription) {
+          setSubscription(data.subscription);
+          // Update user context with subscription info
+          updateUser({ 
+            subscription_type: data.subscription.type,
+            subscription_status: data.subscription.status,
+            avatar_url: data.user?.avatar_url || null 
+          });
+        } else if (data.user) {
           updateUser({ avatar_url: data.user.avatar_url || null });
         }
       } else {
@@ -85,8 +95,35 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold mb-2">Welcome back, {user?.name || 'User'}! 👋</h1>
-          <p className="text-muted-foreground">Ready to ace your next interview?</p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <h1 className="text-4xl font-bold">Welcome back, {user?.name || 'User'}! 👋</h1>
+            {subscription?.type === 'pro' && subscription?.status === 'active' && (
+              <Badge 
+                className="bg-gradient-to-r from-primary to-accent text-white px-4 py-1.5 text-sm font-semibold flex items-center gap-2"
+              >
+                <Crown className="w-4 h-4" />
+                PRO
+              </Badge>
+            )}
+            {subscription?.type === 'enterprise' && subscription?.status === 'active' && (
+              <Badge 
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1.5 text-sm font-semibold flex items-center gap-2"
+              >
+                <Crown className="w-4 h-4" />
+                ENTERPRISE
+              </Badge>
+            )}
+            {(!subscription || subscription.type === 'free') && (
+              <Badge 
+                variant="outline" 
+                className="px-4 py-1.5 text-sm flex items-center gap-2"
+              >
+                <Zap className="w-4 h-4" />
+                FREE
+              </Badge>
+            )}
+          </div>
+          <p className="text-muted-foreground mt-2">Ready to ace your next interview?</p>
         </motion.div>
 
         {/* Stats Grid */}

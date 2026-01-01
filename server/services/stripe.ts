@@ -32,6 +32,9 @@ export async function createCheckoutSession(
 
   const plan = planConfig[planType];
 
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+  console.log(`[Stripe] Creating checkout session with frontend URL: ${frontendUrl}`);
+
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     line_items: [
@@ -48,8 +51,8 @@ export async function createCheckoutSession(
       },
     ],
     mode: 'payment',
-    success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/cancel`,
+    success_url: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${frontendUrl}/payment/cancel`,
     customer_email: userEmail,
     metadata: {
       userId: userId.toString(),

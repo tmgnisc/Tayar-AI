@@ -193,24 +193,41 @@ router.post('/stripe', async (req, res) => {
 });
 
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  console.log('[Webhook] Processing checkout.session.completed');
+  console.log('[Webhook] Session ID:', session.id);
+  console.log('[Webhook] Session metadata:', session.metadata);
+  console.log('[Webhook] Payment status:', session.payment_status);
+  
   const userId = parseInt(session.metadata?.userId || '0');
   const planType = (session.metadata?.planType || 'pro') as 'pro' | 'enterprise';
   const amountFromMetadata = session.metadata?.amount ? Number(session.metadata.amount) : undefined;
   const amount = amountFromMetadata ?? (session.amount_total ? session.amount_total / 100 : planType === 'pro' ? 29 : 40);
 
   if (!userId) {
-    console.error('User ID not found in session metadata');
+    console.error('[Webhook] ❌ User ID not found in session metadata');
+    console.error('[Webhook] Available metadata:', JSON.stringify(session.metadata, null, 2));
     return;
   }
 
+  console.log(`[Webhook] Processing subscription for user ${userId}, plan: ${planType}, amount: $${amount}`);
+
   const connection = await pool.getConnection();
   try {
+    // Check if payment was successful
+    if (session.payment_status !== 'paid') {
+      console.warn(`[Webhook] ⚠️ Payment status is not 'paid': ${session.payment_status}`);
+      return;
+    }
+
     // Calculate subscription dates (1 month access)
     const startDate = new Date();
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + 1);
 
-    await connection.query(
+    console.log(`[Webhook] Updating user ${userId} subscription to ${planType}`);
+    
+    // Update user subscription
+    const [updateResult]: any = await connection.query(
       `UPDATE users 
        SET subscription_type = ?,
            subscription_status = 'active',
@@ -220,7 +237,11 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       [planType, startDate, endDate, userId]
     );
 
-    await connection.query(
+    console.log(`[Webhook] User update affected rows: ${updateResult.affectedRows}`);
+
+    // Insert subscription record
+    console.log(`[Webhook] Inserting subscription record for user ${userId}`);
+    const [insertResult]: any = await connection.query(
       `INSERT INTO subscriptions 
        (user_id, plan_type, amount, status, start_date, end_date, payment_method, transaction_id)
        VALUES (?, ?, ?, 'active', ?, ?, 'stripe', ?)`,
@@ -234,13 +255,19 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       ]
     );
 
+    console.log(`[Webhook] Subscription record inserted with ID: ${insertResult.insertId}`);
+
     // Log activity
     await connection.query(
       'INSERT INTO activity_logs (user_id, activity_type, description) VALUES (?, ?, ?)',
-      [userId, 'subscription_activated', `Subscription activated: ${planType} plan via Stripe`]
+      [userId, 'subscription_activated', `Subscription activated: ${planType} plan via Stripe - Session: ${session.id}`]
     );
 
-    console.log(`✅ Subscription activated for user ${userId}, plan: ${planType}`);
+    console.log(`[Webhook] ✅ Subscription activated for user ${userId}, plan: ${planType}, amount: $${amount}`);
+  } catch (error: any) {
+    console.error('[Webhook] ❌ Error processing subscription:', error);
+    console.error('[Webhook] Error stack:', error.stack);
+    throw error; // Re-throw to be caught by the webhook handler
   } finally {
     connection.release();
   }

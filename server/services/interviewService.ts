@@ -158,6 +158,7 @@ export function checkProfanity(userAnswer: string): boolean {
 /**
  * Check if answer is off-topic based on keywords
  * Returns true if answer doesn't contain ANY keywords from the question
+ * OR if it contains abusive/negative phrases that don't relate to the question
  * (except for very short answers or low knowledge phrases)
  */
 export function checkOffTopic(
@@ -171,6 +172,63 @@ export function checkOffTopic(
 
   const answerLower = userAnswer.toLowerCase().trim();
   const answerWords = answerLower.split(/\s+/).filter(w => w.length > 2);
+  
+  // Check for abusive/negative phrases first - these are always off-topic
+  const abusiveOffTopicPhrases = [
+    'i am angry',
+    'you are bad',
+    'you are stupid',
+    'you are dumb',
+    'you are wrong',
+    'this is bad',
+    'this is stupid',
+    'this is dumb',
+    'i hate',
+    'you suck',
+    'this sucks',
+    'you are terrible',
+    'this is terrible',
+    'you are awful',
+    'this is awful',
+    'you are useless',
+    'this is useless',
+    'i am frustrated with you',
+    'you are annoying',
+    'this is annoying',
+    'you don\'t know',
+    'you are not good',
+    'this is not good',
+    'i am frustrated',
+    'this is wrong',
+    'you are wrong',
+    'i don\'t like',
+    'this is boring',
+    'you are boring',
+    'i am bored',
+    'this is pointless',
+    'you are pointless',
+  ];
+  
+  // Check if answer contains any abusive/negative phrases
+  for (const phrase of abusiveOffTopicPhrases) {
+    if (answerLower.includes(phrase)) {
+      // Even if it contains keywords, if it has abusive phrases, it's off-topic
+      return true;
+    }
+  }
+  
+  // Check for patterns like "you are [negative word]" or "this is [negative word]"
+  const negativePatterns = [
+    /you are (bad|stupid|dumb|wrong|terrible|awful|useless|annoying|not good|boring|pointless)/i,
+    /this is (bad|stupid|dumb|wrong|terrible|awful|useless|annoying|not good|boring|pointless)/i,
+    /i (hate|am angry|am frustrated|am bored|don't like)/i,
+  ];
+  
+  for (const pattern of negativePatterns) {
+    if (pattern.test(answerLower)) {
+      return true;
+    }
+  }
   
   // Very short answers (1-2 words) might be brief but valid - don't mark as off-topic
   if (answerWords.length <= 2) {
