@@ -174,69 +174,57 @@ export function checkOffTopic(
   const answerWords = answerLower.split(/\s+/).filter(w => w.length > 2);
   
   // Check for abusive/negative phrases first - these are always off-topic
-  const abusiveOffTopicPhrases = [
-    'i am angry',
-    'you are bad',
-    'you are stupid',
-    'you are dumb',
-    'you are wrong',
-    'this is bad',
-    'this is stupid',
-    'this is dumb',
-    'i hate',
-    'you suck',
-    'this sucks',
-    'you are terrible',
-    'this is terrible',
-    'you are awful',
-    'this is awful',
-    'you are useless',
-    'this is useless',
-    'i am frustrated with you',
-    'you are annoying',
-    'this is annoying',
-    'you don\'t know',
-    'you are not good',
-    'this is not good',
-    'i am frustrated',
-    'this is wrong',
-    'you are wrong',
-    'i don\'t like',
-    'this is boring',
-    'you are boring',
-    'i am bored',
-    'this is pointless',
-    'you are pointless',
+  // Use regex patterns that allow words in between (e.g., "i am very angry" matches "i am.*angry")
+  const abusiveOffTopicPatterns = [
+    /i\s+am\s+.*angry/i,              // "i am angry", "i am very angry", "i am so angry"
+    /i\s+am\s+.*frustrated/i,         // "i am frustrated", "i am very frustrated"
+    /i\s+am\s+.*bored/i,              // "i am bored", "i am very bored"
+    /you\s+are\s+.*(bad|stupid|dumb|wrong|terrible|awful|useless|annoying|boring|pointless)/i,
+    /this\s+is\s+.*(bad|stupid|dumb|wrong|terrible|awful|useless|annoying|boring|pointless)/i,
+    /i\s+hate/i,                      // "i hate", "i hate this"
+    /you\s+suck/i,
+    /this\s+sucks/i,
+    /you\s+don'?t\s+know/i,
+    /you\s+are\s+not\s+good/i,
+    /this\s+is\s+not\s+good/i,
+    /i\s+don'?t\s+like/i,
   ];
   
-  // Check if answer contains any abusive/negative phrases
-  for (const phrase of abusiveOffTopicPhrases) {
-    if (answerLower.includes(phrase)) {
+  // Check if answer matches any abusive/negative patterns
+  for (const pattern of abusiveOffTopicPatterns) {
+    if (pattern.test(answerLower)) {
+      console.log(`[checkOffTopic] ✅ Detected abusive/negative pattern: ${pattern}`);
       // Even if it contains keywords, if it has abusive phrases, it's off-topic
       return true;
     }
   }
   
-  // Check for patterns like "you are [negative word]" or "this is [negative word]"
-  const negativePatterns = [
-    /you are (bad|stupid|dumb|wrong|terrible|awful|useless|annoying|not good|boring|pointless)/i,
-    /this is (bad|stupid|dumb|wrong|terrible|awful|useless|annoying|not good|boring|pointless)/i,
-    /i (hate|am angry|am frustrated|am bored|don't like)/i,
-  ];
-  
-  for (const pattern of negativePatterns) {
-    if (pattern.test(answerLower)) {
+  // For 2-word answers, check if they contain keywords - if not, likely off-topic
+  // (e.g., "Tera Tower" has no HTML keywords, so it's off-topic)
+  if (answerWords.length === 2) {
+    let hasKeyword = false;
+    for (const keyword of questionKeywords) {
+      const keywordLower = keyword.toLowerCase().trim();
+      if (answerLower.includes(keywordLower)) {
+        hasKeyword = true;
+        break;
+      }
+    }
+    if (!hasKeyword) {
+      console.log(`[checkOffTopic] ✅ 2-word answer with no keywords detected as off-topic`);
       return true;
     }
   }
   
-  // Very short answers (1-2 words) might be brief but valid - don't mark as off-topic
-  if (answerWords.length <= 2) {
+  // Very short answers (1 word) might be brief but valid - don't mark as off-topic
+  if (answerWords.length <= 1) {
     return false;
   }
   
   // Check if answer contains ANY relevant keywords from the question
   let relevantKeywordsFound = 0;
+  const matchedKeywords: string[] = [];
+  
   for (const keyword of questionKeywords) {
     const keywordLower = keyword.toLowerCase().trim();
     
@@ -244,18 +232,28 @@ export function checkOffTopic(
     const keywordRegex = new RegExp(`\\b${keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
     if (keywordRegex.test(answerLower)) {
       relevantKeywordsFound++;
+      matchedKeywords.push(keyword);
       break; // Found at least one keyword, that's enough
     }
     
     // Also check for partial match (for multi-word keywords like "virtual dom")
     if (keywordLower.includes(' ') && answerLower.includes(keywordLower)) {
       relevantKeywordsFound++;
+      matchedKeywords.push(keyword);
       break;
     }
   }
   
+  console.log(`[checkOffTopic] Answer: "${userAnswer}"`);
+  console.log(`[checkOffTopic] Answer words count: ${answerWords.length}`);
+  console.log(`[checkOffTopic] Question keywords: ${questionKeywords.join(', ')}`);
+  console.log(`[checkOffTopic] Keywords found: ${matchedKeywords.join(', ') || 'none'}`);
+  console.log(`[checkOffTopic] Relevant keywords found: ${relevantKeywordsFound}`);
+  
   // If answer has 3+ words but contains NO keywords from the question, it's off-topic
+  // This works for any language - if no keywords match, it's off-topic
   if (answerWords.length >= 3 && relevantKeywordsFound === 0) {
+    console.log(`[checkOffTopic] ✅ Marked as off-topic: Answer has ${answerWords.length} words but no keywords matched`);
     // Exception: Don't mark low knowledge phrases as off-topic (they're handled separately)
     const lowKnowledgeIndicators = [
       "i don't know",
@@ -438,9 +436,13 @@ export function getNextQuestionByKeywords(
   domain: string,
   level: string,
   currentQuestionId: number,
-  userAnswer: string
+  userAnswer: string,
+  interviewId?: number
 ): { question: Question | null; isLowKnowledge: boolean; lowKnowledgeReply?: string } {
-  const questions = getQuestions(domain, level);
+  // Use shuffled questions if interviewId is provided, otherwise use all questions
+  const questions = interviewId !== undefined 
+    ? getShuffledQuestions(domain, level, interviewId, 4)
+    : getQuestions(domain, level);
   const currentQuestion = questions.find(q => q.id === currentQuestionId);
   
   if (!currentQuestion) {
@@ -558,9 +560,66 @@ export function getNextQuestion(
 }
 
 /**
- * Get first question for domain and level
+ * Shuffle array using Fisher-Yates algorithm
  */
-export function getFirstQuestion(domain: string, level: string): Question | null {
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+/**
+ * Get shuffled questions for interview (selects 4 random questions)
+ * Stores the selected questions in a cache keyed by interview ID
+ */
+const interviewQuestionCache = new Map<number, Question[]>();
+
+export function getShuffledQuestions(domain: string, level: string, interviewId: number, maxQuestions: number = 4): Question[] {
+  const allQuestions = getQuestions(domain, level);
+  
+  if (allQuestions.length === 0) {
+    return [];
+  }
+  
+  // If we already have cached questions for this interview, return them
+  if (interviewQuestionCache.has(interviewId)) {
+    return interviewQuestionCache.get(interviewId)!;
+  }
+  
+  // Shuffle all questions and take the first maxQuestions
+  const shuffled = shuffleArray(allQuestions);
+  const selectedQuestions = shuffled.slice(0, Math.min(maxQuestions, shuffled.length));
+  
+  // Keep original IDs for routing to work correctly
+  // Cache the selected questions for this interview
+  interviewQuestionCache.set(interviewId, selectedQuestions);
+  
+  console.log(`[InterviewService] Selected ${selectedQuestions.length} questions for interview ${interviewId} from ${allQuestions.length} total questions`);
+  console.log(`[InterviewService] Selected question IDs: ${selectedQuestions.map(q => q.id).join(', ')}`);
+  
+  return selectedQuestions;
+}
+
+/**
+ * Clear cached questions for an interview (call when interview ends)
+ */
+export function clearInterviewQuestions(interviewId: number): void {
+  interviewQuestionCache.delete(interviewId);
+}
+
+/**
+ * Get first question for domain and level (uses shuffled questions if interviewId provided)
+ */
+export function getFirstQuestion(domain: string, level: string, interviewId?: number): Question | null {
+  if (interviewId !== undefined) {
+    const shuffledQuestions = getShuffledQuestions(domain, level, interviewId, 4);
+    return shuffledQuestions.length > 0 ? shuffledQuestions[0] : null;
+  }
+  
+  // Fallback to original behavior if no interviewId
   const questions = getQuestions(domain, level);
   return questions.length > 0 ? questions[0] : null;
 }

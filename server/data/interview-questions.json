@@ -6,119 +6,49 @@
         "question": "What is HTML and why is it used?",
         "expectedSummary": "HTML is the standard markup language used to structure content on the web.",
         "keywords": ["html", "markup", "structure", "webpage", "elements", "tags"],
-        "routing": {
-          "css": 2,
-          "style": 2,
-          "design": 2,
-          "head": 1,
-          "body": 1
-        },
+        "routing": {"css": 2, "style": 2, "design": 2},
         "defaultNext": 2,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "i haven't read about this",
-          "i haven't studied this",
-          "i haven't done this part",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "i haven't read about this", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "That's okay. HTML is mainly used to structure the content of a webpage. Let's move to something simpler."
       },
-
       {
         "id": 2,
         "question": "What is CSS and what does it do?",
         "expectedSummary": "CSS is used to style and layout web pages, including colors, fonts, spacing, and layouts.",
         "keywords": ["css", "style", "layout", "design", "colors", "fonts", "styling"],
-        "routing": {
-          "responsive": 3,
-          "flexbox": 3,
-          "grid": 3,
-          "html": 1
-        },
+        "routing": {"responsive": 3, "flexbox": 3, "grid": 3},
         "defaultNext": 3,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "i haven't read about this",
-          "i haven't studied this",
-          "i haven't done this part",
-          "not sure",
-          "no idea"
-        ],
-        "systemReplyOnLowKnowledge": "No worries. CSS is what makes a webpage look good. Let’s continue to the next topic."
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. CSS is what makes a webpage look good. Let's continue to the next topic."
       },
-
       {
         "id": 3,
         "question": "What is JavaScript and why is it important?",
         "expectedSummary": "JavaScript is a programming language that makes websites interactive and dynamic.",
         "keywords": ["javascript", "programming", "interactive", "dynamic", "logic", "frontend"],
-        "routing": {
-          "variables": 4,
-          "let": 4,
-          "const": 4,
-          "functions": 4,
-          "dom": 5
-        },
+        "routing": {"variables": 4, "function": 5, "dom": 6},
         "defaultNext": 4,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "i haven't read about this",
-          "i haven't studied this",
-          "i haven't done this part",
-          "not sure",
-          "no idea"
-        ],
-        "systemReplyOnLowKnowledge": "That's alright. JavaScript brings life to websites. Let’s move to an easier question."
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. JavaScript brings life to websites. Let's move to an easier question."
       },
-
       {
         "id": 4,
         "question": "What are variables in JavaScript?",
         "expectedSummary": "Variables store data values. They can be created using var, let, or const.",
         "keywords": ["variable", "var", "let", "const", "value", "store", "data"],
-        "routing": {
-          "function": 5,
-          "dom": 5,
-          "event": 5
-        },
+        "routing": {"function": 5, "array": 8, "object": 9},
         "defaultNext": 5,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "i haven't read about this",
-          "i haven't studied this",
-          "i haven't done this part",
-          "not sure",
-          "no idea"
-        ],
-        "systemReplyOnLowKnowledge": "It’s okay. Variables simply hold data values. Let’s try another question."
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Variables simply hold data values. Let's try another question."
       },
-
       {
         "id": 5,
         "question": "What is the DOM and how is it used?",
         "expectedSummary": "The DOM is the Document Object Model; it's a structure that allows JavaScript to access and manipulate HTML elements.",
         "keywords": ["dom", "document object model", "html", "elements", "manipulate", "javascript"],
-        "routing": {
-          "event": 6,
-          "click": 6,
-          "react": 6,
-          "framework": 6
-        },
+        "routing": {"event": 7, "react": 10, "framework": 10},
         "defaultNext": 6,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "i haven't read about this",
-          "i haven't studied this",
-          "i haven't done this part",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "No problem. The DOM lets JavaScript interact with the webpage. Good effort!"
       },
       {
@@ -126,21 +56,9 @@
         "question": "What are JavaScript functions and how do you create them?",
         "expectedSummary": "Functions are reusable blocks of code that perform specific tasks. They can be created using function declarations, function expressions, or arrow functions.",
         "keywords": ["function", "declaration", "expression", "arrow", "reusable", "code", "parameters"],
-        "routing": {
-          "async": 7,
-          "promise": 7,
-          "callback": 7,
-          "array": 8
-        },
+        "routing": {"async": 7, "callback": 7, "array": 8},
         "defaultNext": 7,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "i haven't read about this",
-          "i haven't studied this",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "That's okay. Functions help organize code into reusable pieces. Let's continue."
       },
       {
@@ -148,19 +66,9 @@
         "question": "What are JavaScript events and how do you handle them?",
         "expectedSummary": "Events are user interactions like clicks, keypresses, or form submissions. They can be handled using event listeners.",
         "keywords": ["event", "click", "listener", "handler", "interaction", "addEventListener"],
-        "routing": {
-          "async": 8,
-          "promise": 8,
-          "api": 8
-        },
+        "routing": {"async": 8, "promise": 8, "api": 8},
         "defaultNext": 8,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "i haven't read about this",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "No worries. Events make web pages interactive. Let's move on."
       },
       {
@@ -168,18 +76,9 @@
         "question": "What are arrays in JavaScript and how do you manipulate them?",
         "expectedSummary": "Arrays are ordered collections of data. They can be manipulated using methods like push, pop, map, filter, and forEach.",
         "keywords": ["array", "push", "pop", "map", "filter", "forEach", "collection", "data"],
-        "routing": {
-          "object": 9,
-          "json": 9,
-          "react": 10
-        },
+        "routing": {"object": 9, "json": 9, "react": 10},
         "defaultNext": 9,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "It's fine. Arrays store lists of data. Let's try another question."
       },
       {
@@ -187,18 +86,9 @@
         "question": "What are JavaScript objects and how do you access their properties?",
         "expectedSummary": "Objects are collections of key-value pairs. Properties can be accessed using dot notation or bracket notation.",
         "keywords": ["object", "property", "key", "value", "dot notation", "bracket notation"],
-        "routing": {
-          "json": 10,
-          "api": 10,
-          "react": 10
-        },
+        "routing": {"json": 10, "api": 10, "react": 10},
         "defaultNext": 10,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "That's alright. Objects store related data together. Good effort!"
       },
       {
@@ -206,19 +96,110 @@
         "question": "What is React and why is it popular?",
         "expectedSummary": "React is a JavaScript library for building user interfaces. It's popular because of its component-based architecture and virtual DOM.",
         "keywords": ["react", "library", "component", "virtual dom", "ui", "interface", "jsx"],
-        "routing": {
-          "component": 11,
-          "state": 11,
-          "props": 11
-        },
+        "routing": {"component": 11, "state": 11, "props": 11},
+        "defaultNext": 11,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. React helps build interactive web applications. Great job!"
+      },
+      {
+        "id": 11,
+        "question": "What are HTML tags and give some examples?",
+        "expectedSummary": "HTML tags are elements that define the structure of a webpage. Examples include div, p, h1, img, a, button, and form tags.",
+        "keywords": ["tag", "element", "div", "paragraph", "heading", "image", "link", "button"],
+        "routing": {"css": 2, "style": 2, "javascript": 3},
+        "defaultNext": 12,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. HTML tags structure content on a page. Let's continue."
+      },
+      {
+        "id": 12,
+        "question": "What is the difference between inline and block elements in HTML?",
+        "expectedSummary": "Block elements take full width and start on a new line, while inline elements only take necessary width and stay on the same line.",
+        "keywords": ["inline", "block", "element", "width", "line", "display"],
+        "routing": {"css": 2, "display": 2, "layout": 2},
+        "defaultNext": 13,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Block and inline elements control layout. Let's move on."
+      },
+      {
+        "id": 13,
+        "question": "What is a CSS selector and how does it work?",
+        "expectedSummary": "CSS selectors target HTML elements to apply styles. Common selectors include element, class, ID, and attribute selectors.",
+        "keywords": ["selector", "class", "id", "element", "attribute", "target", "style"],
+        "routing": {"css": 2, "style": 2, "specificity": 14},
+        "defaultNext": 14,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Selectors help target elements for styling. Good effort!"
+      },
+      {
+        "id": 14,
+        "question": "What is responsive design and why is it important?",
+        "expectedSummary": "Responsive design makes websites adapt to different screen sizes using CSS media queries and flexible layouts.",
+        "keywords": ["responsive", "mobile", "screen", "media query", "flexible", "layout", "adaptive"],
+        "routing": {"css": 2, "media": 2, "flexbox": 15},
+        "defaultNext": 15,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Responsive design ensures websites work on all devices. Let's continue."
+      },
+      {
+        "id": 15,
+        "question": "What is Flexbox in CSS?",
+        "expectedSummary": "Flexbox is a CSS layout method that allows flexible arrangement of items in a container, making it easier to create responsive layouts.",
+        "keywords": ["flexbox", "flex", "layout", "container", "items", "direction", "justify", "align"],
+        "routing": {"css": 2, "grid": 16, "layout": 2},
+        "defaultNext": 16,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. Flexbox helps create flexible layouts. Good job!"
+      },
+      {
+        "id": 16,
+        "question": "What is CSS Grid and how is it different from Flexbox?",
+        "expectedSummary": "CSS Grid is a two-dimensional layout system for rows and columns, while Flexbox is one-dimensional for either rows or columns.",
+        "keywords": ["grid", "two-dimensional", "rows", "columns", "layout", "flexbox", "comparison"],
+        "routing": {"css": 2, "flexbox": 15, "layout": 2},
+        "defaultNext": 17,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. Grid and Flexbox are both layout tools. Let's move on."
+      },
+      {
+        "id": 17,
+        "question": "What are data types in JavaScript?",
+        "expectedSummary": "JavaScript has primitive types like string, number, boolean, null, undefined, and complex types like object and array.",
+        "keywords": ["data type", "string", "number", "boolean", "null", "undefined", "object", "array"],
+        "routing": {"variable": 4, "object": 9, "array": 8},
+        "defaultNext": 18,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's fine. Data types categorize different kinds of values. Let's continue."
+      },
+      {
+        "id": 18,
+        "question": "What is a string in JavaScript?",
+        "expectedSummary": "A string is a sequence of characters used to represent text. Strings can be created using single quotes, double quotes, or template literals.",
+        "keywords": ["string", "text", "character", "quote", "template literal", "concatenation"],
+        "routing": {"variable": 4, "function": 5, "data": 17},
+        "defaultNext": 19,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. Strings represent text data. Good effort!"
+      },
+      {
+        "id": 19,
+        "question": "What is a loop in JavaScript and give examples?",
+        "expectedSummary": "Loops repeat code execution. Examples include for, while, do-while, and forEach loops for arrays.",
+        "keywords": ["loop", "for", "while", "forEach", "iterate", "repeat", "array"],
+        "routing": {"array": 8, "function": 5, "iteration": 8},
+        "defaultNext": 20,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Loops help repeat actions. Let's try another question."
+      },
+      {
+        "id": 20,
+        "question": "What is conditional statements in JavaScript?",
+        "expectedSummary": "Conditional statements execute code based on conditions. Examples include if, else, else if, and switch statements.",
+        "keywords": ["if", "else", "switch", "condition", "boolean", "true", "false"],
+        "routing": {"variable": 4, "function": 5, "logic": 3},
         "defaultNext": null,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "not sure",
-          "no idea"
-        ],
-        "systemReplyOnLowKnowledge": "No problem. React helps build interactive web applications. Great job on the interview!"
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Conditionals control program flow. Great job on the interview!"
       }
     ],
     "intermediate": [
@@ -227,20 +208,9 @@
         "question": "Explain closures in JavaScript with an example.",
         "expectedSummary": "Closures allow inner functions to access variables from their outer scope even after the outer function has returned.",
         "keywords": ["closure", "scope", "inner function", "outer function", "variable", "access"],
-        "routing": {
-          "this": 2,
-          "context": 2,
-          "bind": 2,
-          "async": 3
-        },
+        "routing": {"this": 2, "context": 2, "bind": 2},
         "defaultNext": 2,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "i haven't studied this",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "That's okay. Closures are an advanced concept. Let's try something else."
       },
       {
@@ -248,18 +218,9 @@
         "question": "What is 'this' in JavaScript and how does it work?",
         "expectedSummary": "'this' refers to the context in which a function is called. Its value depends on how the function is invoked.",
         "keywords": ["this", "context", "bind", "call", "apply", "arrow function", "scope"],
-        "routing": {
-          "prototype": 3,
-          "class": 3,
-          "async": 4
-        },
+        "routing": {"prototype": 3, "class": 3, "async": 4},
         "defaultNext": 3,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "No worries. 'this' can be tricky. Let's continue."
       },
       {
@@ -267,19 +228,9 @@
         "question": "What are Promises in JavaScript and how do you use them?",
         "expectedSummary": "Promises represent the eventual completion of an asynchronous operation. They can be used with .then(), .catch(), or async/await.",
         "keywords": ["promise", "async", "await", "then", "catch", "asynchronous", "resolve", "reject"],
-        "routing": {
-          "async": 4,
-          "await": 4,
-          "fetch": 4,
-          "api": 4
-        },
+        "routing": {"async": 4, "await": 4, "fetch": 4},
         "defaultNext": 4,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "That's fine. Promises handle asynchronous operations. Let's move on."
       },
       {
@@ -287,18 +238,9 @@
         "question": "Explain the difference between let, const, and var in JavaScript.",
         "expectedSummary": "var is function-scoped and can be redeclared. let and const are block-scoped. const cannot be reassigned, while let can.",
         "keywords": ["let", "const", "var", "scope", "block", "function", "hoisting"],
-        "routing": {
-          "hoisting": 5,
-          "temporal": 5,
-          "react": 6
-        },
+        "routing": {"hoisting": 5, "temporal": 5, "react": 6},
         "defaultNext": 5,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "It's okay. These are important concepts. Let's try another question."
       },
       {
@@ -306,18 +248,9 @@
         "question": "What is the Virtual DOM in React and why is it used?",
         "expectedSummary": "The Virtual DOM is a JavaScript representation of the real DOM. React uses it to efficiently update the UI by comparing changes.",
         "keywords": ["virtual dom", "react", "dom", "diffing", "reconciliation", "performance", "update"],
-        "routing": {
-          "component": 6,
-          "state": 6,
-          "props": 6
-        },
+        "routing": {"component": 6, "state": 6, "props": 6},
         "defaultNext": 6,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "No problem. Virtual DOM improves React's performance. Good effort!"
       },
       {
@@ -325,19 +258,110 @@
         "question": "What is the difference between React state and props?",
         "expectedSummary": "State is internal data managed by a component, while props are data passed from parent to child components. State can change, props are read-only.",
         "keywords": ["state", "props", "component", "parent", "child", "mutable", "immutable"],
-        "routing": {
-          "hook": 7,
-          "usestate": 7,
-          "useeffect": 7
-        },
-        "defaultNext": null,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "not sure",
-          "no idea"
-        ],
+        "routing": {"hook": 7, "usestate": 7, "useeffect": 7},
+        "defaultNext": 7,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "That's alright. State and props are fundamental React concepts. Great job!"
+      },
+      {
+        "id": 7,
+        "question": "What are React Hooks and why were they introduced?",
+        "expectedSummary": "Hooks allow functional components to use state and lifecycle features. They were introduced to simplify component logic and enable code reuse.",
+        "keywords": ["hook", "usestate", "useeffect", "functional", "component", "state", "lifecycle"],
+        "routing": {"usestate": 8, "useeffect": 8, "custom": 8},
+        "defaultNext": 8,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Hooks make React components simpler. Let's continue."
+      },
+      {
+        "id": 8,
+        "question": "Explain async/await in JavaScript.",
+        "expectedSummary": "async/await is syntax for handling Promises. async functions return Promises, and await pauses execution until the Promise resolves.",
+        "keywords": ["async", "await", "promise", "asynchronous", "resolve", "reject", "error"],
+        "routing": {"promise": 3, "fetch": 9, "api": 9},
+        "defaultNext": 9,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. async/await simplifies asynchronous code. Good effort!"
+      },
+      {
+        "id": 9,
+        "question": "What is the Fetch API and how do you use it?",
+        "expectedSummary": "The Fetch API provides an interface for fetching resources. It returns a Promise and is used to make HTTP requests.",
+        "keywords": ["fetch", "api", "http", "request", "response", "promise", "async"],
+        "routing": {"async": 8, "promise": 3, "axios": 10},
+        "defaultNext": 10,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Fetch is used to get data from servers. Let's move on."
+      },
+      {
+        "id": 10,
+        "question": "What is destructuring in JavaScript?",
+        "expectedSummary": "Destructuring extracts values from arrays or objects into distinct variables using a shorter syntax.",
+        "keywords": ["destructuring", "array", "object", "variable", "extract", "spread"],
+        "routing": {"array": 11, "object": 11, "react": 6},
+        "defaultNext": 11,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. Destructuring simplifies variable assignment. Great job!"
+      },
+      {
+        "id": 11,
+        "question": "What are arrow functions in JavaScript?",
+        "expectedSummary": "Arrow functions are a shorter syntax for writing functions. They don't have their own 'this' binding and are always anonymous.",
+        "keywords": ["arrow function", "syntax", "this", "binding", "anonymous", "shorter"],
+        "routing": {"function": 12, "this": 2, "closure": 1},
+        "defaultNext": 12,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. Arrow functions provide concise syntax. Let's continue."
+      },
+      {
+        "id": 12,
+        "question": "What is hoisting in JavaScript?",
+        "expectedSummary": "Hoisting moves variable and function declarations to the top of their scope before code execution, allowing them to be used before declaration.",
+        "keywords": ["hoisting", "declaration", "var", "function", "scope", "temporal dead zone"],
+        "routing": {"var": 4, "let": 4, "const": 4},
+        "defaultNext": 13,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Hoisting affects how declarations work. Good effort!"
+      },
+      {
+        "id": 13,
+        "question": "What is the spread operator in JavaScript?",
+        "expectedSummary": "The spread operator (...) expands arrays or objects into individual elements, useful for copying, merging, or passing arguments.",
+        "keywords": ["spread", "operator", "array", "object", "copy", "merge", "expand"],
+        "routing": {"array": 14, "object": 14, "react": 6},
+        "defaultNext": 14,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. The spread operator is useful for working with arrays and objects. Let's move on."
+      },
+      {
+        "id": 14,
+        "question": "What are higher-order functions in JavaScript?",
+        "expectedSummary": "Higher-order functions are functions that take other functions as arguments or return functions. Examples include map, filter, and reduce.",
+        "keywords": ["higher-order", "function", "map", "filter", "reduce", "callback", "array"],
+        "routing": {"array": 15, "function": 12, "callback": 15},
+        "defaultNext": 15,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Higher-order functions are powerful tools. Great job!"
+      },
+      {
+        "id": 15,
+        "question": "What is JSX in React?",
+        "expectedSummary": "JSX is a syntax extension that allows writing HTML-like code in JavaScript. It gets transpiled to React.createElement calls.",
+        "keywords": ["jsx", "syntax", "html", "javascript", "transpile", "react", "element"],
+        "routing": {"react": 6, "component": 6, "babel": 16},
+        "defaultNext": 16,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. JSX makes React code more readable. Let's continue."
+      },
+      {
+        "id": 16,
+        "question": "What is event bubbling in JavaScript?",
+        "expectedSummary": "Event bubbling is when an event starts from the target element and propagates up through parent elements in the DOM tree.",
+        "keywords": ["event bubbling", "propagation", "target", "parent", "dom", "event", "capture"],
+        "routing": {"event": 17, "dom": 17, "react": 6},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. Event bubbling affects how events are handled. Excellent work on the interview!"
       }
     ],
     "advanced": [
@@ -346,18 +370,9 @@
         "question": "Explain React's component lifecycle methods and hooks.",
         "expectedSummary": "Lifecycle methods like componentDidMount and componentWillUnmount manage component behavior. Hooks like useEffect provide similar functionality in functional components.",
         "keywords": ["lifecycle", "componentdidmount", "useeffect", "hook", "mount", "unmount", "update"],
-        "routing": {
-          "performance": 2,
-          "memo": 2,
-          "optimization": 2
-        },
+        "routing": {"performance": 2, "memo": 2, "optimization": 2},
         "defaultNext": 2,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "That's okay. Lifecycle methods are advanced topics. Let's continue."
       },
       {
@@ -365,18 +380,9 @@
         "question": "How do you optimize React application performance?",
         "expectedSummary": "Performance can be optimized using React.memo, useMemo, useCallback, code splitting, lazy loading, and avoiding unnecessary re-renders.",
         "keywords": ["performance", "memo", "usememo", "usecallback", "optimization", "rerender", "lazy"],
-        "routing": {
-          "testing": 3,
-          "redux": 4,
-          "context": 4
-        },
+        "routing": {"testing": 3, "redux": 4, "context": 4},
         "defaultNext": 3,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "not sure",
-          "no idea"
-        ],
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "No worries. Performance optimization is complex. Let's move on."
       },
       {
@@ -384,19 +390,70 @@
         "question": "What is Redux and when would you use it?",
         "expectedSummary": "Redux is a state management library for JavaScript applications. It's useful for managing complex application state across multiple components.",
         "keywords": ["redux", "state management", "store", "action", "reducer", "dispatch"],
-        "routing": {
-          "middleware": 4,
-          "thunk": 4,
-          "saga": 4
-        },
+        "routing": {"middleware": 4, "thunk": 4, "saga": 4},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Redux is for complex state management. Good effort!"
+      },
+      {
+        "id": 4,
+        "question": "What is the Context API in React?",
+        "expectedSummary": "The Context API provides a way to pass data through the component tree without prop drilling, useful for global state management.",
+        "keywords": ["context", "api", "provider", "consumer", "global", "state", "prop drilling"],
+        "routing": {"redux": 3, "state": 5, "hook": 5},
+        "defaultNext": 5,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Context API helps share state. Let's continue."
+      },
+      {
+        "id": 5,
+        "question": "What are custom hooks in React?",
+        "expectedSummary": "Custom hooks are reusable functions that contain stateful logic. They allow sharing logic between components and must start with 'use'.",
+        "keywords": ["custom hook", "reusable", "logic", "usestate", "useeffect", "sharing"],
+        "routing": {"hook": 6, "component": 6, "logic": 6},
+        "defaultNext": 6,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. Custom hooks promote code reuse. Great job!"
+      },
+      {
+        "id": 6,
+        "question": "What is code splitting in React?",
+        "expectedSummary": "Code splitting divides code into smaller chunks that load on demand, improving initial load time and performance.",
+        "keywords": ["code splitting", "chunk", "lazy", "load", "performance", "bundle", "dynamic"],
+        "routing": {"performance": 2, "optimization": 2, "webpack": 7},
+        "defaultNext": 7,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Code splitting improves performance. Let's move on."
+      },
+      {
+        "id": 7,
+        "question": "What is server-side rendering (SSR) and why use it?",
+        "expectedSummary": "SSR renders React components on the server, sending HTML to the client. It improves SEO, initial load time, and performance.",
+        "keywords": ["ssr", "server-side rendering", "seo", "performance", "next", "hydrate"],
+        "routing": {"next": 8, "performance": 2, "seo": 8},
+        "defaultNext": 8,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. SSR improves SEO and performance. Good effort!"
+      },
+      {
+        "id": 8,
+        "question": "What is the difference between controlled and uncontrolled components?",
+        "expectedSummary": "Controlled components have form data handled by React state, while uncontrolled components use refs to access form data directly from the DOM.",
+        "keywords": ["controlled", "uncontrolled", "component", "form", "state", "ref", "dom"],
+        "routing": {"form": 9, "state": 5, "ref": 9},
+        "defaultNext": 9,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Controlled vs uncontrolled affects form handling. Let's continue."
+      },
+      {
+        "id": 9,
+        "question": "What are React Portals and when would you use them?",
+        "expectedSummary": "Portals render children into a DOM node outside the parent component hierarchy, useful for modals, tooltips, and overlays.",
+        "keywords": ["portal", "dom", "modal", "tooltip", "overlay", "render", "hierarchy"],
+        "routing": {"component": 10, "dom": 10, "ui": 10},
         "defaultNext": null,
-        "lowKnowledgePhrases": [
-          "i don't know",
-          "sorry",
-          "not sure",
-          "no idea"
-        ],
-        "systemReplyOnLowKnowledge": "That's fine. Redux is for complex state management. Excellent work on the interview!"
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. Portals help with complex UI rendering. Excellent work on the interview!"
       }
     ]
   }

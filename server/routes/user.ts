@@ -481,7 +481,7 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
     // console.log('[Start Conversation] Loading questions from JSON...');
     const { getFirstQuestion, getGreetingMessage } = await import('../services/interviewService');
     
-    const firstQuestion = getFirstQuestion(domainName || interview.role, interview.difficulty);
+    const firstQuestion = getFirstQuestion(domainName || interview.role, interview.difficulty, interviewId);
     
     if (!firstQuestion) {
       return res.status(404).json({
@@ -676,8 +676,16 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         });
       }
 
+      // Log the conversation for debugging
+      console.log(`[Continue Conversation] Interview ${interviewId}, Question ${currentQuestionId}`);
+      console.log(`[Continue Conversation] Question: "${currentQuestion.question}"`);
+      console.log(`[Continue Conversation] Question keywords: ${currentQuestion.keywords.join(', ')}`);
+      console.log(`[Continue Conversation] User answer: "${lastUserMessage}"`);
+
       // Check for profanity/abusive language
-      if (checkProfanity(lastUserMessage)) {
+      const hasProfanity = checkProfanity(lastUserMessage);
+      if (hasProfanity) {
+        console.log(`[Continue Conversation] ⚠️ Profanity detected`);
         return res.json({
           message: "I understand you may be frustrated, but let's keep our conversation professional. Please focus on answering the technical questions. Let me ask you again: " + currentQuestion.question,
           questionId: currentQuestionId, // Ask the same question again
@@ -691,9 +699,11 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
       }
 
       // Check if answer is off-topic (if answer doesn't contain ANY keywords)
+      // This works for any language - if no keywords match, it's off-topic
       const isOffTopic = checkOffTopic(lastUserMessage, currentQuestion.keywords);
       
       if (isOffTopic) {
+        console.log(`[Continue Conversation] ⚠️ Off-topic answer detected`);
         const offTopicDetails = {
           isOffTopic: true,
           keywordsMatched: [],
@@ -729,6 +739,8 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
           interviewComplete: false,
         });
       }
+      
+      console.log(`[Continue Conversation] ✅ Answer is on-topic, proceeding with evaluation`);
 
       // Evaluate the answer
       const evaluation = evaluateAnswer(
@@ -745,7 +757,7 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
       );
       
       // Store answer analysis for report generation
-      const hasProfanity = checkProfanity(lastUserMessage);
+      // hasProfanity is already checked above - if we reach here, it's false
       const isLowKnowledgeAnswer = checkLowKnowledge(
         lastUserMessage,
         currentQuestion.lowKnowledgePhrases
@@ -754,7 +766,7 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
       const answerDetails = {
         isOffTopic: false,
         isLowKnowledge: isLowKnowledgeAnswer,
-        hasProfanity,
+        hasProfanity: false, // Already checked above, no profanity if we reach here
         keywordsMatched,
         expectedKeywords: currentQuestion.keywords,
         answer: lastUserMessage,
@@ -779,7 +791,8 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         domainName || interview.role,
         interview.difficulty,
         currentQuestionId,
-        lastUserMessage
+        lastUserMessage,
+        interviewId
       );
 
       const { question: nextQuestion, isLowKnowledge: nextIsLowKnowledge, lowKnowledgeReply } = nextQuestionResult;

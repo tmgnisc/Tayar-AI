@@ -71,7 +71,9 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
       },
       // First message - This will be automatically spoken by Vapi when the call starts
       // Vapi will speak this greeting immediately upon call connection
-      firstMessage: `Hello${config.userName ? ` ${config.userName}` : ''}! Welcome to your technical interview practice session. I'm your AI interviewer, and I'll be conducting your interview today for the ${config.role} position at ${config.difficulty} level. Let's begin! My first question for you is: Can you tell me about your experience with ${config.role}? What technologies and tools are you most familiar with in this domain?`,
+      // Make it conversational like chatting with Gemini
+      const domain = config.domainName || config.role;
+      firstMessage: `Hello${config.userName ? ` ${config.userName}` : ''}! Welcome to your technical interview practice session. I'm your AI interviewer powered by Gemini, and I'll be conducting your interview today focused specifically on ${domain} at ${config.difficulty} level. This will be a natural voice conversation - just like chatting, but I'll be asking you interview questions about ${domain}. Let's begin! My first question for you is: Can you tell me about your experience with ${domain}? What technologies and tools are you most familiar with in this domain?`,
       
       // Ensure the assistant speaks first
       firstMessageMode: 'assistant-speaks-first',
