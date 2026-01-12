@@ -215,7 +215,7 @@ export default function Pricing() {
                           ) : (
                             plan.buttonText
                           )}
-                        </Button>
+                          </Button>
                       ) : plan.buttonText === "Contact Sales" ? (
                         <Link to="/contact">
                           <Button variant="outline" className="w-full border-primary/30 hover:bg-primary/10 h-12 rounded-xl">

@@ -26,6 +26,7 @@ export default function InterviewSetup() {
   const [pageLoading, setPageLoading] = useState(true);
   const [domains, setDomains] = useState<Domain[]>([]);
   const [userProfile, setUserProfile] = useState<{ domain?: Domain | null; level?: string | null } | null>(null);
+  const [dailyLimit, setDailyLimit] = useState<{ is_free_user: boolean; interviews_today: number; daily_limit: number; remaining: number } | null>(null);
   const navigate = useNavigate();
   const { token, user } = useAuth();
   const { toast } = useToast();
@@ -59,10 +60,11 @@ export default function InterviewSetup() {
 
   const loadInitialData = async () => {
     try {
-      // Fetch both profile and domains in parallel
-      const [profileResponse, domainsResponse] = await Promise.all([
+      // Fetch profile, domains, and dashboard (for daily limit) in parallel
+      const [profileResponse, domainsResponse, dashboardResponse] = await Promise.all([
         apiRequest('api/user/profile', {}, token),
         apiRequest('api/user/domains', {}, token),
+        apiRequest('api/user/dashboard', {}, token),
       ]);
 
       // Process domains first
@@ -71,6 +73,12 @@ export default function InterviewSetup() {
         const domainsData = await domainsResponse.json();
         domainsList = domainsData.domains || [];
         setDomains(domainsList);
+      }
+
+      // Load daily limit info
+      if (dashboardResponse.ok) {
+        const dashboardData = await dashboardResponse.json();
+        setDailyLimit(dashboardData.daily_limit);
       }
 
       // Process profile and auto-fill fields
@@ -140,11 +148,28 @@ export default function InterviewSetup() {
         // Navigate to session with interview ID
         navigate(`/interview/session?interviewId=${data.interviewId}`);
       } else {
-        toast({
-          title: "Error",
-          description: data.message || "Failed to start interview",
-          variant: "destructive",
-        });
+        // Check if it's a daily limit error
+        if (response.status === 403 && data.limitReached) {
+          toast({
+            title: "Daily Limit Reached",
+            description: data.error || "Free users can only take 1 interview per day. Upgrade to Pro for unlimited interviews!",
+            variant: "destructive",
+            action: (
+              <button
+                onClick={() => navigate('/pricing')}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Upgrade to Pro
+              </button>
+            ),
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: data.message || "Failed to start interview",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error('Error starting interview:', error);
@@ -198,6 +223,45 @@ export default function InterviewSetup() {
             </CardHeader>
 
             <CardContent className="space-y-8">
+              {/* Daily Limit Info for Free Users */}
+              {dailyLimit && dailyLimit.is_free_user && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className={`p-4 rounded-lg border ${
+                    dailyLimit.remaining > 0 
+                      ? 'bg-blue-500/10 border-blue-500/50' 
+                      : 'bg-amber-500/10 border-amber-500/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        {dailyLimit.remaining > 0 
+                          ? `${dailyLimit.remaining} interview${dailyLimit.remaining === 1 ? '' : 's'} remaining today (Free Plan)` 
+                          : 'Daily interview limit reached (Free Plan)'
+                        }
+                      </p>
+                      {dailyLimit.remaining === 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Come back tomorrow or upgrade to Pro for unlimited interviews!
+                        </p>
+                      )}
+                    </div>
+                    {dailyLimit.remaining === 0 && (
+                      <Button
+                        onClick={() => navigate('/pricing')}
+                        size="sm"
+                        className="ml-4 bg-gradient-to-r from-primary to-accent"
+                      >
+                        Upgrade to Pro
+                      </Button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -274,7 +338,7 @@ export default function InterviewSetup() {
               >
                 <Button
                   onClick={handleStart}
-                  disabled={!role || !difficulty || loading}
+                  disabled={!role || !difficulty || loading || (dailyLimit?.remaining === 0)}
                   className="w-full h-14 text-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 disabled:opacity-50 rounded-2xl group"
                 >
                   <motion.span

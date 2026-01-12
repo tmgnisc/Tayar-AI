@@ -156,6 +156,53 @@ export function checkProfanity(userAnswer: string): boolean {
 }
 
 /**
+ * Calculate Levenshtein distance between two strings
+ */
+function levenshteinDistance(str1: string, str2: string): number {
+  const len1 = str1.length;
+  const len2 = str2.length;
+  const matrix: number[][] = [];
+
+  for (let i = 0; i <= len1; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= len2; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      if (str1[i - 1] === str2[j - 1]) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1, // substitution
+          matrix[i][j - 1] + 1,     // insertion
+          matrix[i - 1][j] + 1      // deletion
+        );
+      }
+    }
+  }
+
+  return matrix[len1][len2];
+}
+
+/**
+ * Check if two words are similar (for typo tolerance)
+ * Using simple Levenshtein distance
+ */
+function isSimilarWord(word1: string, word2: string): boolean {
+  const maxLength = Math.max(word1.length, word2.length);
+  const distance = levenshteinDistance(word1, word2);
+  const similarity = 1 - distance / maxLength;
+  
+  // Consider words similar if they're at least 70% similar
+  // This catches typos like "grade" vs "grid" (80% similar)
+  return similarity >= 0.7;
+}
+
+/**
  * Check if answer is off-topic based on keywords
  * Returns true if answer doesn't contain ANY keywords from the question
  * OR if it contains abusive/negative phrases that don't relate to the question
@@ -227,20 +274,44 @@ export function checkOffTopic(
   
   for (const keyword of questionKeywords) {
     const keywordLower = keyword.toLowerCase().trim();
+    let matched = false;
     
     // Check for whole word match (more strict)
     const keywordRegex = new RegExp(`\\b${keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
     if (keywordRegex.test(answerLower)) {
+      matched = true;
+    }
+    
+    // Check for partial match (for multi-word keywords like "virtual dom")
+    if (!matched && keywordLower.includes(' ') && answerLower.includes(keywordLower)) {
+      matched = true;
+    }
+    
+    // Check if keyword appears with spaces (e.g., "flexbox" matches "flex box")
+    if (!matched && keywordLower.length > 4) {
+      const keywordWithSpaces = keywordLower.split('').join(' ?');
+      const flexibleRegex = new RegExp(keywordWithSpaces, 'i');
+      if (flexibleRegex.test(answerLower)) {
+        matched = true;
+      }
+    }
+    
+    // Check for fuzzy match (simple edit distance for typos)
+    // Only for keywords longer than 4 characters to avoid false positives
+    if (!matched && keywordLower.length > 4) {
+      const answerWordsLower = answerLower.split(/\s+/);
+      for (const word of answerWordsLower) {
+        if (word.length > 3 && isSimilarWord(word, keywordLower)) {
+          matched = true;
+          break;
+        }
+      }
+    }
+    
+    if (matched) {
       relevantKeywordsFound++;
       matchedKeywords.push(keyword);
       break; // Found at least one keyword, that's enough
-    }
-    
-    // Also check for partial match (for multi-word keywords like "virtual dom")
-    if (keywordLower.includes(' ') && answerLower.includes(keywordLower)) {
-      relevantKeywordsFound++;
-      matchedKeywords.push(keyword);
-      break;
     }
   }
   

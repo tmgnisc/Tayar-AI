@@ -43,34 +43,34 @@ export const Navbar = () => {
         </Link>
 
         {/* Navigation menu */}
-        <div className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            Home
-          </Link>
-          <Link to="/about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            About
-          </Link>
-          <Link to="/features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            Features
-          </Link>
-          <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            Pricing
-          </Link>
-          <Link to="/contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            Contact
-          </Link>
+          <div className="hidden md:flex items-center gap-6">
+            <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              Home
+            </Link>
+            <Link to="/about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              About
+            </Link>
+            <Link to="/features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              Features
+            </Link>
+            <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              Pricing
+            </Link>
+            <Link to="/contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              Contact
+            </Link>
           {isAuthenticated && (
             <Link to={user.role === 'admin' ? '/admin' : '/dashboard'} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               {user.role === 'admin' ? 'Admin' : 'Dashboard'}
             </Link>
           )}
-        </div>
+          </div>
 
         {/* User menu */}
         {isAuthenticated ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Avatar className="w-10 h-10 cursor-pointer">
+      <Avatar className="w-10 h-10 cursor-pointer">
                 <AvatarImage
                   src={
                     user.avatar_url ||
@@ -78,10 +78,10 @@ export const Navbar = () => {
                   }
                   alt={user.name}
                 />
-                <AvatarFallback>
+        <AvatarFallback>
                   {user.name?.charAt(0).toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
+        </AvatarFallback>
+      </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>

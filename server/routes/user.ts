@@ -42,6 +42,24 @@ router.get('/dashboard', async (req: AuthRequest, res) => {
         [userId]
       );
 
+      // Get today's interview count (for free user daily limit)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const [todayInterviews]: any = await connection.query(
+        `SELECT COUNT(*) as count FROM interviews 
+         WHERE user_id = ? AND created_at >= ? AND created_at < ?`,
+        [userId, today, tomorrow]
+      );
+
+      const subscriptionType = users[0]?.subscription_type || 'free';
+      const subscriptionStatus = users[0]?.subscription_status || 'active';
+      const isFreeUser = !subscriptionType || 
+                         subscriptionType === 'free' || 
+                         subscriptionStatus !== 'active';
+
       res.json({
         stats: {
           total_interviews: interviewStats[0]?.total_interviews || 0,
@@ -51,11 +69,17 @@ router.get('/dashboard', async (req: AuthRequest, res) => {
         },
         recent_interviews: recentInterviews,
         subscription: {
-          type: users[0]?.subscription_type || 'free',
-          status: users[0]?.subscription_status || 'active',
+          type: subscriptionType,
+          status: subscriptionStatus,
         },
         user: {
           avatar_url: users[0]?.avatar_url || null,
+        },
+        daily_limit: {
+          is_free_user: isFreeUser,
+          interviews_today: todayInterviews[0]?.count || 0,
+          daily_limit: isFreeUser ? 1 : -1, // -1 means unlimited
+          remaining: isFreeUser ? Math.max(0, 1 - (todayInterviews[0]?.count || 0)) : -1,
         },
       });
     } finally {
@@ -156,9 +180,9 @@ router.post('/interviews', async (req: AuthRequest, res) => {
     }
 
     try {
-      // Get user info including domain and level for interview
+      // Get user info including domain, level, and subscription status
       const [users]: any = await connection.query(
-        `SELECT u.name, u.email, u.domain_id, u.level,
+        `SELECT u.name, u.email, u.domain_id, u.level, u.subscription_type, u.subscription_status,
          d.name as domain_name, d.description as domain_description
          FROM users u
          LEFT JOIN domains d ON u.domain_id = d.id
@@ -166,6 +190,34 @@ router.post('/interviews', async (req: AuthRequest, res) => {
         [userId]
       );
       const user = users[0];
+
+      // Check if user is on free plan (no subscription or inactive subscription)
+      const isFreeUser = !user.subscription_type || 
+                         user.subscription_type === 'free' || 
+                         user.subscription_status !== 'active';
+
+      // If free user, check daily interview limit (1 per day)
+      if (isFreeUser) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1); // Start of tomorrow
+
+        const [todayInterviews]: any = await connection.query(
+          `SELECT COUNT(*) as count FROM interviews 
+           WHERE user_id = ? AND created_at >= ? AND created_at < ?`,
+          [userId, today, tomorrow]
+        );
+
+        if (todayInterviews[0].count >= 1) {
+          return res.status(403).json({ 
+            message: 'Daily interview limit reached',
+            error: 'Free users can only take 1 interview per day. Upgrade to Pro for unlimited interviews!',
+            limitReached: true,
+            upgradeRequired: true
+          });
+        }
+      }
 
       // Use user's domain and level if available, otherwise use provided role/difficulty
       const interviewRole = user.domain_name || role;
@@ -477,28 +529,30 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
       }
     }
 
-    // Use JSON-based interview questions with Maria as interviewer
-    console.log('[Start Conversation] Using JSON questions with Maria interviewer...');
-    const { getFirstQuestion } = await import('../services/interviewService');
+    // Get first question from static JSON data
+    // console.log('[Start Conversation] Loading questions from JSON...');
+    const { getFirstQuestion, getGreetingMessage } = await import('../services/interviewService');
     
-    const question = getFirstQuestion(
-      interview.role,
-      interview.difficulty as 'beginner' | 'intermediate' | 'advanced',
-      interview.id
-    );
-
-    if (!question) {
-      return res.status(500).json({ message: 'Failed to get first question' });
+    const firstQuestion = getFirstQuestion(domainName || interview.role, interview.difficulty, interviewId);
+    
+    if (!firstQuestion) {
+      return res.status(404).json({
+        message: 'No questions found for this domain and level',
+        error: `No questions available for ${domainName || interview.role} at ${interview.difficulty} level`,
+      });
     }
 
-    // Maria's greeting with the first question
-    const greeting = `Hello ${userName || 'there'}! I'm Maria, and I'll be conducting your interview today for the ${domainName || interview.role} position at ${interview.difficulty} level. I'll be asking you 4 questions. Let's begin! ${question.question}`;
+    const greeting = getGreetingMessage(userName, domainName, interview.difficulty);
+    const message = `${greeting} ${firstQuestion.question}`;
+    const conversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    console.log(`[Start Conversation] Success! Question ID: ${firstQuestion.id}`);
 
     res.json({
-      message: greeting,
-      questionId: question.id,
-      question: question.question,
-      interviewComplete: false,
+      message,
+      conversationId,
+      questionId: firstQuestion.id,
+      question: firstQuestion.question,
     });
   } catch (error: any) {
     console.error('[Start Conversation] Error:', error);
@@ -583,41 +637,111 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         }
       }
 
-      // Use JSON-based interview with Maria as interviewer
-      console.log('[Continue Conversation] Using JSON questions with Maria interviewer...');
-      const { checkProfanity, checkOffTopic, getNextQuestionByKeywords } = await import('../services/interviewService.js');
+      // Process answer and get next question from static JSON
+      const { 
+        getNextQuestionByKeywords, 
+        evaluateAnswer, 
+        getQuestions,
+        checkProfanity,
+        checkOffTopic,
+        checkLowKnowledge,
+      } = await import('../services/interviewService');
       
       // Get the last user message (their answer)
       const lastUserMessage = conversationHistory
         .filter(msg => msg.role === 'user')
         .pop()?.text || '';
       
-      if (!lastUserMessage) {
+      // Get the current question ID from request
+      const { currentQuestionId } = req.body;
+      
+      if (!currentQuestionId) {
         return res.status(400).json({ 
-          message: 'User message is required',
-          error: 'Please provide a user message in conversationHistory'
+          message: 'Current question ID is required',
+          error: 'Please provide currentQuestionId in the request body'
         });
       }
 
       // Count questions asked so far
-      const questionsAsked = conversationHistory.filter(msg => msg.role === 'assistant').length;
-      const MAX_QUESTIONS = 4; // Maria asks exactly 4 questions
+      // Count user answers - each user answer means a question was asked and answered
+      // The current answer being processed is included in the count
+      const userAnswers = conversationHistory.filter(msg => msg.role === 'user').length;
+      const questionsAnswered = userAnswers; // This includes the current answer being processed
+      const MAX_QUESTIONS = 5;
 
-      // Get the last question asked (we need the full question object, not just text)
-      // We'll retrieve it from the interview service
-      const lastQuestionText = conversationHistory
-        .filter(msg => msg.role === 'assistant')
-        .pop()?.text || '';
+      // Get questions list first (needed for report generation)
+      const questions = getQuestions(domainName || interview.role, interview.difficulty);
+
+      // Check if we've reached the maximum number of questions
+      // If we've answered 5 questions, we're done (the 5th answer is being processed now)
+      if (questionsAnswered >= MAX_QUESTIONS) {
+        // Generate and return report
+        const { generateInterviewReport } = await import('../services/reportService');
+        
+        // Get all stored answers from interview_feedback
+        const [feedbacks]: any = await connection.query(
+          'SELECT * FROM interview_feedback WHERE interview_id = ? ORDER BY id',
+          [interviewId]
+        );
+        
+        // Reconstruct answer analysis
+        const answers = feedbacks.map((fb: any) => {
+          const qId = parseInt(fb.category.replace('Question ', '')) || 0;
+          const question = questions.find(q => q.id === qId);
+          const isOffTopic = fb.feedback?.includes('Off-topic') || false;
+          const keywordsMatched = fb.feedback?.match(/Keywords matched: (.+)/)?.[1]?.split(', ') || [];
+          
+          return {
+            questionId: qId,
+            question: question?.question || '',
+            answer: '',
+            score: parseFloat(fb.score),
+            keywordsMatched: keywordsMatched.filter((k: string) => k && k !== 'None'),
+            isOffTopic,
+            isLowKnowledge: false,
+            hasProfanity: false,
+            feedback: fb.feedback || '',
+          };
+        });
+        
+        const report = await generateInterviewReport(interviewId, userId, answers);
+        
+        return res.json({
+          message: "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!",
+          questionId: null,
+          evaluation: {
+            score: report.averageScore,
+            feedback: `Overall Rating: ${report.overallRating}`,
+          },
+          interviewComplete: true,
+          report: report,
+        });
+      }
+
+      // Get current question to evaluate answer
+      const currentQuestion = questions.find(q => q.id === currentQuestionId);
+      
+      if (!currentQuestion) {
+        return res.status(404).json({ 
+          message: 'Question not found',
+          error: `Question with ID ${currentQuestionId} not found`
+        });
+      }
+
+      // Log the conversation for debugging
+      console.log(`[Continue Conversation] Interview ${interviewId}, Question ${currentQuestionId}`);
+      console.log(`[Continue Conversation] Question: "${currentQuestion.question}"`);
+      console.log(`[Continue Conversation] Question keywords: ${currentQuestion.keywords.join(', ')}`);
+      console.log(`[Continue Conversation] User answer: "${lastUserMessage}"`);
 
       // Check for profanity/abusive language
       const hasProfanity = checkProfanity(lastUserMessage);
       if (hasProfanity) {
         console.log(`[Continue Conversation] ⚠️ Profanity detected`);
-        
         return res.json({
-          message: "I understand you may be frustrated, but let's keep our conversation professional. Please focus on answering the technical questions. " + lastQuestionText,
-          questionId: questionsAsked,
-          question: lastQuestionText,
+          message: "I understand you may be frustrated, but let's keep our conversation professional. Please focus on answering the technical questions. Let me ask you again: " + currentQuestion.question,
+          questionId: currentQuestionId, // Ask the same question again
+          question: currentQuestion.question,
           evaluation: {
             score: 0,
             feedback: 'Please maintain a professional tone during the interview.',
@@ -626,94 +750,312 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         });
       }
 
-      // Get the actual question object with keywords for off-topic check
-      // We'll retrieve it by getting the shuffled questions and finding the one at current position
-      const { getShuffledQuestions } = await import('../services/interviewService.js');
-      const shuffledQuestions = getShuffledQuestions(
-        interview.role,
-        interview.difficulty as 'beginner' | 'intermediate' | 'advanced',
-        interview.id,
-        4
+      // Check for low knowledge responses BEFORE off-topic check
+      // This way "I don't know" gets appropriate response instead of being marked off-topic
+      const isLowKnowledgeAnswer = checkLowKnowledge(
+        lastUserMessage,
+        currentQuestion.lowKnowledgePhrases || []
       );
       
-      // Current question is at index questionsAsked - 1 (since questionsAsked is 1-indexed)
-      const currentQuestion = shuffledQuestions[questionsAsked - 1];
-      
-      // Check if answer is off-topic using the question object with keywords
-      const isOffTopic = currentQuestion 
-        ? checkOffTopic(lastUserMessage, currentQuestion)
-        : checkOffTopic(lastUserMessage, lastQuestionText);
-      if (isOffTopic) {
-        console.log(`[Continue Conversation] ⚠️ Off-topic response detected`);
+      if (isLowKnowledgeAnswer) {
+        console.log(`[Continue Conversation] ⚠️ Low knowledge detected: "${lastUserMessage}"`);
         
-        return res.json({
-          message: "Don't go off topic. Please answer the question I asked: " + lastQuestionText,
-          questionId: questionsAsked,
-          question: lastQuestionText,
-          evaluation: {
-            score: 0,
-            feedback: 'Please stay on topic and answer the question.',
-          },
-          interviewComplete: false,
-        });
-      }
+        // Use custom message from question if available, otherwise use default
+        const lowKnowledgeMessage = currentQuestion.systemReplyOnLowKnowledge || 
+          "That's okay if you're not sure. Let me move on to the next question.";
+        
+        const lowKnowledgeDetails = {
+          isOffTopic: false,
+          isLowKnowledge: true,
+          keywordsMatched: [],
+          expectedKeywords: currentQuestion.keywords,
+          answer: lastUserMessage,
+          question: currentQuestion.question,
+          hasProfanity: false,
+        };
 
-      // Check if interview is complete (4 questions asked)
-      if (questionsAsked >= MAX_QUESTIONS) {
-        // Store final conversation for report
+        // Store this answer as low knowledge for report
         await connection.query(
           `INSERT INTO interview_feedback (interview_id, category, score, feedback, details)
            VALUES (?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE score = VALUES(score), feedback = VALUES(feedback), details = VALUES(details)`,
           [
             interviewId,
-            'Final',
+            `Question ${currentQuestionId}`,
             0,
-            'Interview completed',
-            JSON.stringify({ conversationHistory }),
+            'Low knowledge: Candidate indicated lack of knowledge',
+            JSON.stringify(lowKnowledgeDetails),
           ]
         );
 
-        const closingMessage = `Thank you for your time today, ${userName || 'candidate'}. That concludes our interview. You demonstrated understanding of the ${domainName || interview.role} concepts. Keep practicing and you'll continue to improve. Thank you for participating in this practice interview. Good luck!`;
+        // Get next question
+        const nextQuestionResult = getNextQuestionByKeywords(
+          domainName || interview.role,
+          interview.difficulty,
+          currentQuestionId,
+          lastUserMessage,
+          interviewId
+        );
 
+        const nextQuestion = nextQuestionResult.question;
+
+        // Check if we've reached max questions
+        const userAnswers = conversationHistory.filter(msg => msg.role === 'user').length;
+        const willExceedMax = userAnswers >= MAX_QUESTIONS;
+
+        if (!nextQuestion || willExceedMax) {
+          // Interview complete
+          const { generateInterviewReport } = await import('../services/reportService');
+          const questions = getQuestions(domainName || interview.role, interview.difficulty);
+          
+          const [feedbacks]: any = await connection.query(
+            'SELECT * FROM interview_feedback WHERE interview_id = ? ORDER BY id',
+            [interviewId]
+          );
+          
+          const answers = feedbacks.map((fb: any) => {
+            const qId = parseInt(fb.category.replace('Question ', '')) || 0;
+            const question = questions.find(q => q.id === qId);
+            let details: any = {};
+            if (fb.details) {
+              try {
+                details = typeof fb.details === 'string' ? JSON.parse(fb.details) : fb.details;
+              } catch {
+                details = {};
+              }
+            }
+            const keywordsMatched = Array.isArray(details.keywordsMatched)
+              ? details.keywordsMatched
+              : [];
+            const expectedKeywords = Array.isArray(details.expectedKeywords)
+              ? details.expectedKeywords
+              : (question?.keywords || []);
+            
+            return {
+              questionId: qId,
+              question: question?.question || '',
+              answer: details.answer || '',
+              score: parseFloat(fb.score),
+              keywordsMatched,
+              expectedKeywords,
+              isOffTopic: !!details.isOffTopic,
+              isLowKnowledge: !!details.isLowKnowledge,
+              hasProfanity: !!details.hasProfanity,
+              feedback: fb.feedback || '',
+            };
+          });
+          
+          const report = await generateInterviewReport(interviewId, userId, answers);
+          
+          return res.json({
+            message: `${lowKnowledgeMessage} Thank you for your time today! You've completed all questions.`,
+            questionId: null,
+            evaluation: {
+              score: 0,
+              feedback: 'Low knowledge indicated',
+            },
+            interviewComplete: true,
+            report: report,
+          });
+        }
+
+        // Continue with next question
         return res.json({
-          message: closingMessage,
-          questionId: null,
+          message: `${lowKnowledgeMessage} ${nextQuestion.question}`,
+          questionId: nextQuestion.id,
+          question: nextQuestion.question,
           evaluation: {
             score: 0,
-            feedback: 'Interview completed. Thank you for participating!',
+            feedback: 'Low knowledge indicated',
           },
-          interviewComplete: true,
+          interviewComplete: false,
         });
       }
 
-      // Get next question from JSON data
-      const nextQuestion = getNextQuestionByKeywords(
+      // Check if answer is off-topic (if answer doesn't contain ANY keywords)
+      // This works for any language - if no keywords match, it's off-topic
+      const isOffTopic = checkOffTopic(lastUserMessage, currentQuestion.keywords);
+      
+      if (isOffTopic) {
+        console.log(`[Continue Conversation] ⚠️ Off-topic answer detected`);
+        const offTopicDetails = {
+          isOffTopic: true,
+          keywordsMatched: [],
+          expectedKeywords: currentQuestion.keywords,
+          answer: lastUserMessage,
+          question: currentQuestion.question,
+          hasProfanity: false,
+          isLowKnowledge: false,
+        };
+
+        // Store this answer as off-topic for report
+        await connection.query(
+          `INSERT INTO interview_feedback (interview_id, category, score, feedback, details)
+           VALUES (?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE score = VALUES(score), feedback = VALUES(feedback), details = VALUES(details)`,
+          [
+            interviewId,
+            `Question ${currentQuestionId}`,
+            0,
+            'Off-topic: Answer did not contain relevant keywords',
+            JSON.stringify(offTopicDetails),
+          ]
+        );
+
+        return res.json({
+          message: "Don't go off topic. Please focus on answering the question I asked. " + currentQuestion.question,
+          questionId: currentQuestionId, // Ask the same question again
+          question: currentQuestion.question,
+          evaluation: {
+            score: 0,
+            feedback: 'Please stay on topic and answer the question asked. Your answer should include relevant keywords from the question.',
+          },
+          interviewComplete: false,
+        });
+      }
+      
+      console.log(`[Continue Conversation] ✅ Answer is on-topic, proceeding with evaluation`);
+
+      // Evaluate the answer
+      const evaluation = evaluateAnswer(
         lastUserMessage,
-        interview.role,
-        interview.difficulty as 'beginner' | 'intermediate' | 'advanced',
-        interview.id
+        currentQuestion.expectedAnswers,
+        currentQuestion.expectedSummary,
+        currentQuestion.keywords
+      );
+      
+      // Check which keywords were matched
+      const answerLower = lastUserMessage.toLowerCase();
+      const keywordsMatched = currentQuestion.keywords.filter(keyword =>
+        answerLower.includes(keyword.toLowerCase())
+      );
+      
+      // Store answer analysis for report generation
+      // hasProfanity, isLowKnowledge, and isOffTopic are already checked above
+      // If we reach here, they are all false
+      const answerDetails = {
+        isOffTopic: false,
+        isLowKnowledge: false, // Already checked above, not low knowledge if we reach here
+        hasProfanity: false, // Already checked above, no profanity if we reach here
+        keywordsMatched,
+        expectedKeywords: currentQuestion.keywords,
+        answer: lastUserMessage,
+        question: currentQuestion.question,
+      };
+
+      await connection.query(
+        `INSERT INTO interview_feedback (interview_id, category, score, feedback, details)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE score = VALUES(score), feedback = VALUES(feedback), details = VALUES(details)`,
+        [
+          interviewId,
+          `Question ${currentQuestionId}`,
+          evaluation.score,
+          `${evaluation.feedback} Keywords matched: ${keywordsMatched.join(', ') || 'None'}`,
+          JSON.stringify(answerDetails),
+        ]
       );
 
-      if (!nextQuestion) {
-        return res.status(500).json({ message: 'Failed to get next question' });
+      // Get next question based on keywords in user's answer (keyword-based routing)
+      const nextQuestionResult = getNextQuestionByKeywords(
+        domainName || interview.role,
+        interview.difficulty,
+        currentQuestionId,
+        lastUserMessage,
+        interviewId
+      );
+
+      const { question: nextQuestion, isLowKnowledge: nextIsLowKnowledge, lowKnowledgeReply } = nextQuestionResult;
+
+      // Check if we've reached max questions (after answering this one)
+      // We've already answered questionsAnswered questions, so after this answer we'll have answered questionsAnswered questions
+      // But we check if the NEXT question would exceed max
+      const willExceedMax = questionsAnswered >= MAX_QUESTIONS;
+
+      if (!nextQuestion || willExceedMax) {
+        // Interview is complete - generate report
+        const { generateInterviewReport } = await import('../services/reportService');
+        
+        // Get all stored answers from interview_feedback
+        const [feedbacks]: any = await connection.query(
+          'SELECT * FROM interview_feedback WHERE interview_id = ? ORDER BY id',
+          [interviewId]
+        );
+        
+        // Reconstruct answer analysis from stored data
+        const answers = feedbacks.map((fb: any) => {
+          const qId = parseInt(fb.category.replace('Question ', '')) || 0;
+          const question = questions.find(q => q.id === qId);
+          let details: any = {};
+          if (fb.details) {
+            try {
+              details = typeof fb.details === 'string' ? JSON.parse(fb.details) : fb.details;
+            } catch {
+              details = {};
+            }
+          }
+          const keywordsMatched = Array.isArray(details.keywordsMatched)
+            ? details.keywordsMatched
+            : [];
+          const expectedKeywords = Array.isArray(details.expectedKeywords)
+            ? details.expectedKeywords
+            : (question?.keywords || []);
+          
+          return {
+            questionId: qId,
+            question: question?.question || '',
+            answer: details.answer || '',
+            score: parseFloat(fb.score),
+            keywordsMatched,
+            expectedKeywords,
+            isOffTopic: !!details.isOffTopic,
+            isLowKnowledge: !!details.isLowKnowledge,
+            hasProfanity: !!details.hasProfanity,
+            feedback: fb.feedback || '',
+          };
+        });
+        
+        const report = await generateInterviewReport(interviewId, userId, answers);
+        
+        let completionMessage = "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!";
+        
+        // If low knowledge was detected and there's a reply, use it
+        if (nextIsLowKnowledge && lowKnowledgeReply) {
+          completionMessage = lowKnowledgeReply;
+        }
+
+        res.json({
+          message: completionMessage,
+          questionId: null,
+          evaluation: {
+            score: evaluation.score,
+            feedback: evaluation.feedback,
+          },
+          interviewComplete: true,
+          report: report,
+        });
+        return;
       }
 
-      // Maria's response with acknowledgment and next question
-      const acknowledgments = [
-        "Thank you for that answer.",
-        "I see.",
-        "That's interesting.",
-        "Good point.",
-        "Okay, got it.",
-      ];
-      const randomAck = acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
-      const mariaResponse = `${randomAck} ${nextQuestion.question}`;
+      // Build the message
+      let message = '';
+      if (nextIsLowKnowledge && lowKnowledgeReply) {
+        // Use low knowledge reply and then ask next question
+        message = `${lowKnowledgeReply} ${nextQuestion.question}`;
+      } else {
+        // Use normal feedback and ask next question
+        const feedbackMessage = evaluation.feedback;
+        message = `${feedbackMessage} ${nextQuestion.question}`;
+      }
 
       res.json({
-        message: mariaResponse,
+        message,
         questionId: nextQuestion.id,
         question: nextQuestion.question,
+        evaluation: {
+          score: evaluation.score,
+          feedback: evaluation.feedback,
+        },
         interviewComplete: false,
       });
     } finally {
