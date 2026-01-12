@@ -477,30 +477,38 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
       }
     }
 
-    // Get first question from static JSON data
-    // console.log('[Start Conversation] Loading questions from JSON...');
-    const { getFirstQuestion, getGreetingMessage } = await import('../services/interviewService');
+    // Use Gemini AI to start the interview conversation
+    console.log('[Start Conversation] Using Gemini AI to start interview...');
+    const { startInterviewConversation, generateInterviewPrompt } = await import('../services/gemini');
     
-    const firstQuestion = getFirstQuestion(domainName || interview.role, interview.difficulty, interviewId);
+    const interviewContext = {
+      role: domainName || interview.role,
+      difficulty: interview.difficulty as 'beginner' | 'intermediate' | 'advanced' | 'expert',
+      language: interview.language || 'english',
+      userName: userName,
+      domainName: domainName,
+      domainDescription: domainDescription,
+    };
+
+    // Generate interview prompt with domain information
+    const systemPrompt = generateInterviewPrompt(interviewContext);
     
-    if (!firstQuestion) {
-      return res.status(404).json({
-        message: 'No questions found for this domain and level',
-        error: `No questions available for ${domainName || interview.role} at ${interview.difficulty} level`,
-      });
-    }
+    // Start conversation with Gemini
+    const { message, conversationId } = await startInterviewConversation(interviewContext, systemPrompt);
+    
+    // Store conversation ID in interview metadata (we'll use a simple approach)
+    await connection.query(
+      'UPDATE interviews SET vapi_call_id = ? WHERE id = ?',
+      [conversationId, interviewId]
+    );
 
-    const greeting = getGreetingMessage(userName, domainName, interview.difficulty);
-    const message = `${greeting} ${firstQuestion.question}`;
-    const conversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    console.log(`[Start Conversation] Success! Question ID: ${firstQuestion.id}`);
+    console.log(`[Start Conversation] ✅ Gemini AI conversation started! Conversation ID: ${conversationId}`);
 
     res.json({
       message,
       conversationId,
-      questionId: firstQuestion.id,
-      question: firstQuestion.question,
+      questionId: 1, // Placeholder - Gemini doesn't use question IDs
+      question: message, // The message from Gemini contains the question
     });
   } catch (error: any) {
     console.error('[Start Conversation] Error:', error);
@@ -585,111 +593,41 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         }
       }
 
-      // Process answer and get next question from static JSON
-      const { 
-        getNextQuestionByKeywords, 
-        evaluateAnswer, 
-        getQuestions,
-        checkProfanity,
-        checkOffTopic,
-        checkLowKnowledge,
-      } = await import('../services/interviewService');
+      // Use Gemini AI to continue the interview conversation
+      console.log('[Continue Conversation] Using Gemini AI to continue interview...');
+      const { continueInterviewConversation, generateInterviewPrompt } = await import('../services/gemini');
+      const { checkProfanity } = await import('../services/interviewService');
       
       // Get the last user message (their answer)
       const lastUserMessage = conversationHistory
         .filter(msg => msg.role === 'user')
         .pop()?.text || '';
       
-      // Get the current question ID from request
-      const { currentQuestionId } = req.body;
-      
-      if (!currentQuestionId) {
+      if (!lastUserMessage) {
         return res.status(400).json({ 
-          message: 'Current question ID is required',
-          error: 'Please provide currentQuestionId in the request body'
+          message: 'User message is required',
+          error: 'Please provide a user message in conversationHistory'
         });
       }
 
-      // Count questions asked so far
-      // Count user answers - each user answer means a question was asked and answered
-      // The current answer being processed is included in the count
-      const userAnswers = conversationHistory.filter(msg => msg.role === 'user').length;
-      const questionsAnswered = userAnswers; // This includes the current answer being processed
-      const MAX_QUESTIONS = 5;
-
-      // Get questions list first (needed for report generation)
-      const questions = getQuestions(domainName || interview.role, interview.difficulty);
-
-      // Check if we've reached the maximum number of questions
-      // If we've answered 5 questions, we're done (the 5th answer is being processed now)
-      if (questionsAnswered >= MAX_QUESTIONS) {
-        // Generate and return report
-        const { generateInterviewReport } = await import('../services/reportService');
-        
-        // Get all stored answers from interview_feedback
-        const [feedbacks]: any = await connection.query(
-          'SELECT * FROM interview_feedback WHERE interview_id = ? ORDER BY id',
-          [interviewId]
-        );
-        
-        // Reconstruct answer analysis
-        const answers = feedbacks.map((fb: any) => {
-          const qId = parseInt(fb.category.replace('Question ', '')) || 0;
-          const question = questions.find(q => q.id === qId);
-          const isOffTopic = fb.feedback?.includes('Off-topic') || false;
-          const keywordsMatched = fb.feedback?.match(/Keywords matched: (.+)/)?.[1]?.split(', ') || [];
-          
-          return {
-            questionId: qId,
-            question: question?.question || '',
-            answer: '',
-            score: parseFloat(fb.score),
-            keywordsMatched: keywordsMatched.filter((k: string) => k && k !== 'None'),
-            isOffTopic,
-            isLowKnowledge: false,
-            hasProfanity: false,
-            feedback: fb.feedback || '',
-          };
-        });
-        
-        const report = await generateInterviewReport(interviewId, userId, answers);
-        
-        return res.json({
-          message: "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!",
-          questionId: null,
-          evaluation: {
-            score: report.averageScore,
-            feedback: `Overall Rating: ${report.overallRating}`,
-          },
-          interviewComplete: true,
-          report: report,
-        });
-      }
-
-      // Get current question to evaluate answer
-      const currentQuestion = questions.find(q => q.id === currentQuestionId);
-      
-      if (!currentQuestion) {
-        return res.status(404).json({ 
-          message: 'Question not found',
-          error: `Question with ID ${currentQuestionId} not found`
-        });
-      }
-
-      // Log the conversation for debugging
-      console.log(`[Continue Conversation] Interview ${interviewId}, Question ${currentQuestionId}`);
-      console.log(`[Continue Conversation] Question: "${currentQuestion.question}"`);
-      console.log(`[Continue Conversation] Question keywords: ${currentQuestion.keywords.join(', ')}`);
-      console.log(`[Continue Conversation] User answer: "${lastUserMessage}"`);
+      // Count questions asked so far (count assistant messages that contain questions)
+      // Maria will ask exactly 4 questions
+      const assistantMessages = conversationHistory.filter(msg => msg.role === 'assistant').length;
+      const MAX_QUESTIONS = 4; // Maria asks exactly 4 questions
 
       // Check for profanity/abusive language
       const hasProfanity = checkProfanity(lastUserMessage);
       if (hasProfanity) {
         console.log(`[Continue Conversation] ⚠️ Profanity detected`);
+        // Get the last assistant message to repeat the question
+        const lastAssistantMessage = conversationHistory
+          .filter(msg => msg.role === 'assistant')
+          .pop()?.text || '';
+        
         return res.json({
-          message: "I understand you may be frustrated, but let's keep our conversation professional. Please focus on answering the technical questions. Let me ask you again: " + currentQuestion.question,
-          questionId: currentQuestionId, // Ask the same question again
-          question: currentQuestion.question,
+          message: "I understand you may be frustrated, but let's keep our conversation professional. Please focus on answering the technical questions. " + (lastAssistantMessage || "Let me ask you again."),
+          questionId: assistantMessages, // Use message count as ID
+          question: lastAssistantMessage,
           evaluation: {
             score: 0,
             feedback: 'Please maintain a professional tone during the interview.',
@@ -698,193 +636,87 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         });
       }
 
-      // Check if answer is off-topic (if answer doesn't contain ANY keywords)
-      // This works for any language - if no keywords match, it's off-topic
-      const isOffTopic = checkOffTopic(lastUserMessage, currentQuestion.keywords);
+      // Basic off-topic check (simplified - Gemini will handle domain-specific checks)
+      // We'll let Gemini handle most of the conversation flow
       
-      if (isOffTopic) {
-        console.log(`[Continue Conversation] ⚠️ Off-topic answer detected`);
-        const offTopicDetails = {
-          isOffTopic: true,
-          keywordsMatched: [],
-          expectedKeywords: currentQuestion.keywords,
-          answer: lastUserMessage,
-          question: currentQuestion.question,
-          hasProfanity: false,
-          isLowKnowledge: false,
-        };
+      // Prepare interview context
+      const interviewContext = {
+        role: domainName || interview.role,
+        difficulty: interview.difficulty as 'beginner' | 'intermediate' | 'advanced' | 'expert',
+        language: interview.language || 'english',
+        userName: userName,
+        domainName: domainName,
+        domainDescription: domainDescription,
+      };
 
-        // Store this answer as off-topic for report
+      // Generate interview prompt with domain information
+      const systemPrompt = generateInterviewPrompt(interviewContext);
+      
+      // Convert conversation history to Gemini format
+      const geminiHistory = conversationHistory.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        text: msg.text || msg.content || '',
+      }));
+
+      // Continue conversation with Gemini
+      let geminiResponse: string;
+      try {
+        geminiResponse = await continueInterviewConversation(
+          interviewContext,
+          geminiHistory,
+          systemPrompt
+        );
+        console.log(`[Continue Conversation] ✅ Gemini AI response received (${geminiResponse.length} chars)`);
+      } catch (error: any) {
+        console.error('[Continue Conversation] Gemini API error:', error);
+        return res.status(500).json({
+          message: 'Failed to get response from Gemini AI',
+          error: error.message,
+        });
+      }
+
+      // Check if interview is complete
+      // Maria asks exactly 4 questions, so after 4 assistant messages (including the current response), we're done
+      const questionsAsked = assistantMessages + 1; // +1 for the current response
+      const isComplete = geminiResponse.toLowerCase().includes('thank you for your time') ||
+                        geminiResponse.toLowerCase().includes('concludes our interview') ||
+                        geminiResponse.toLowerCase().includes('interview is complete') ||
+                        questionsAsked >= MAX_QUESTIONS;
+
+      if (isComplete) {
+        // Store final conversation for report
         await connection.query(
           `INSERT INTO interview_feedback (interview_id, category, score, feedback, details)
            VALUES (?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE score = VALUES(score), feedback = VALUES(feedback), details = VALUES(details)`,
           [
             interviewId,
-            `Question ${currentQuestionId}`,
+            'Final',
             0,
-            'Off-topic: Answer did not contain relevant keywords',
-            JSON.stringify(offTopicDetails),
+            'Interview completed via Gemini AI',
+            JSON.stringify({ conversationHistory, finalMessage: geminiResponse }),
           ]
         );
 
         return res.json({
-          message: "Don't go off topic. Please focus on answering the question I asked. " + currentQuestion.question,
-          questionId: currentQuestionId, // Ask the same question again
-          question: currentQuestion.question,
-          evaluation: {
-            score: 0,
-            feedback: 'Please stay on topic and answer the question asked. Your answer should include relevant keywords from the question.',
-          },
-          interviewComplete: false,
-        });
-      }
-      
-      console.log(`[Continue Conversation] ✅ Answer is on-topic, proceeding with evaluation`);
-
-      // Evaluate the answer
-      const evaluation = evaluateAnswer(
-        lastUserMessage,
-        currentQuestion.expectedAnswers,
-        currentQuestion.expectedSummary,
-        currentQuestion.keywords
-      );
-      
-      // Check which keywords were matched
-      const answerLower = lastUserMessage.toLowerCase();
-      const keywordsMatched = currentQuestion.keywords.filter(keyword =>
-        answerLower.includes(keyword.toLowerCase())
-      );
-      
-      // Store answer analysis for report generation
-      // hasProfanity is already checked above - if we reach here, it's false
-      const isLowKnowledgeAnswer = checkLowKnowledge(
-        lastUserMessage,
-        currentQuestion.lowKnowledgePhrases
-      );
-      
-      const answerDetails = {
-        isOffTopic: false,
-        isLowKnowledge: isLowKnowledgeAnswer,
-        hasProfanity: false, // Already checked above, no profanity if we reach here
-        keywordsMatched,
-        expectedKeywords: currentQuestion.keywords,
-        answer: lastUserMessage,
-        question: currentQuestion.question,
-      };
-
-      await connection.query(
-        `INSERT INTO interview_feedback (interview_id, category, score, feedback, details)
-         VALUES (?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE score = VALUES(score), feedback = VALUES(feedback), details = VALUES(details)`,
-        [
-          interviewId,
-          `Question ${currentQuestionId}`,
-          evaluation.score,
-          `${evaluation.feedback} Keywords matched: ${keywordsMatched.join(', ') || 'None'}`,
-          JSON.stringify(answerDetails),
-        ]
-      );
-
-      // Get next question based on keywords in user's answer (keyword-based routing)
-      const nextQuestionResult = getNextQuestionByKeywords(
-        domainName || interview.role,
-        interview.difficulty,
-        currentQuestionId,
-        lastUserMessage,
-        interviewId
-      );
-
-      const { question: nextQuestion, isLowKnowledge: nextIsLowKnowledge, lowKnowledgeReply } = nextQuestionResult;
-
-      // Check if we've reached max questions (after answering this one)
-      // We've already answered questionsAnswered questions, so after this answer we'll have answered questionsAnswered questions
-      // But we check if the NEXT question would exceed max
-      const willExceedMax = questionsAnswered >= MAX_QUESTIONS;
-
-      if (!nextQuestion || willExceedMax) {
-        // Interview is complete - generate report
-        const { generateInterviewReport } = await import('../services/reportService');
-        
-        // Get all stored answers from interview_feedback
-        const [feedbacks]: any = await connection.query(
-          'SELECT * FROM interview_feedback WHERE interview_id = ? ORDER BY id',
-          [interviewId]
-        );
-        
-        // Reconstruct answer analysis from stored data
-        const answers = feedbacks.map((fb: any) => {
-          const qId = parseInt(fb.category.replace('Question ', '')) || 0;
-          const question = questions.find(q => q.id === qId);
-          let details: any = {};
-          if (fb.details) {
-            try {
-              details = typeof fb.details === 'string' ? JSON.parse(fb.details) : fb.details;
-            } catch {
-              details = {};
-            }
-          }
-          const keywordsMatched = Array.isArray(details.keywordsMatched)
-            ? details.keywordsMatched
-            : [];
-          const expectedKeywords = Array.isArray(details.expectedKeywords)
-            ? details.expectedKeywords
-            : (question?.keywords || []);
-          
-          return {
-            questionId: qId,
-            question: question?.question || '',
-            answer: details.answer || '',
-            score: parseFloat(fb.score),
-            keywordsMatched,
-            expectedKeywords,
-            isOffTopic: !!details.isOffTopic,
-            isLowKnowledge: !!details.isLowKnowledge,
-            hasProfanity: !!details.hasProfanity,
-            feedback: fb.feedback || '',
-          };
-        });
-        
-        const report = await generateInterviewReport(interviewId, userId, answers);
-        
-        let completionMessage = "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!";
-        
-        // If low knowledge was detected and there's a reply, use it
-        if (nextIsLowKnowledge && lowKnowledgeReply) {
-          completionMessage = lowKnowledgeReply;
-        }
-
-        res.json({
-          message: completionMessage,
+          message: geminiResponse,
           questionId: null,
           evaluation: {
-            score: evaluation.score,
-            feedback: evaluation.feedback,
+            score: 0,
+            feedback: 'Interview completed. Thank you for participating!',
           },
           interviewComplete: true,
-          report: report,
         });
-        return;
       }
 
-      // Build the message
-      let message = '';
-      if (nextIsLowKnowledge && lowKnowledgeReply) {
-        // Use low knowledge reply and then ask next question
-        message = `${lowKnowledgeReply} ${nextQuestion.question}`;
-      } else {
-        // Use normal feedback and ask next question
-        const feedbackMessage = evaluation.feedback;
-        message = `${feedbackMessage} ${nextQuestion.question}`;
-      }
-
+      // Return Gemini's response as the next question/message
       res.json({
-        message,
-        questionId: nextQuestion.id,
-        question: nextQuestion.question,
+        message: geminiResponse,
+        questionId: assistantMessages + 1, // Increment for next question
+        question: geminiResponse, // Gemini's response contains the question/feedback
         evaluation: {
-          score: evaluation.score,
-          feedback: evaluation.feedback,
+          score: 0,
+          feedback: 'Continue the conversation',
         },
         interviewComplete: false,
       });

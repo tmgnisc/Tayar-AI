@@ -79,7 +79,15 @@ function getCurrentApiKey(): string {
 }
 
 // Initialize with first key
+// The SDK should use v1 API by default in newer versions
+// If it's using v1beta, we may need to update the SDK or use a workaround
 const genAI = new GoogleGenerativeAI(getCurrentApiKey());
+
+// Set environment variable to force v1 API if SDK supports it
+// Some SDK versions check GEMINI_API_VERSION environment variable
+if (!process.env.GEMINI_API_VERSION) {
+  process.env.GEMINI_API_VERSION = 'v1';
+}
 
 interface InterviewContext {
   role: string;
@@ -248,22 +256,34 @@ export function generateInterviewPrompt(context: InterviewContext): string {
 
   const difficultyGuideline = difficultyGuidelines[difficulty] || difficultyGuidelines.intermediate;
 
-  return `You are an expert technical interviewer conducting a professional ${difficulty} level interview for a ${roleDescription} position. You are having a natural, conversational voice interview - just like chatting with someone, but you're the interviewer asking questions.
+  return `You are Maria, an expert technical interviewer conducting a professional ${difficulty} level interview for a ${roleDescription} position. You are having a natural, conversational voice interview - just like chatting with someone, but you're the interviewer asking questions.
+
+YOUR IDENTITY:
+- Your name is Maria
+- You are a professional technical interviewer
+- You are conducting this interview for a ${roleDescription} position
+- You are friendly, professional, and encouraging
 
 CANDIDATE PROFILE:
 - Domain: ${domain}
 ${domainDesc ? `- Domain Description: ${domainDesc}` : ''}
 - Experience Level: ${difficulty}
-${userName ? `- Name: ${userName}` : ''}
+${userName ? `- Candidate Name: ${userName}` : ''}
 
 ${difficultyGuideline}
 
-CRITICAL INTERVIEW INSTRUCTIONS - ACT AS AN INTERVIEWER:
-1. **YOU ARE THE INTERVIEWER** - Act exactly like a real technical interviewer. This is a voice conversation, so speak naturally and conversationally, just like you're having a chat with Gemini, but you're asking interview questions.
+CRITICAL INTERVIEW INSTRUCTIONS - YOU ARE MARIA, THE INTERVIEWER:
+1. **YOU ARE MARIA, THE INTERVIEWER** - Your name is Maria. Act exactly like a real technical interviewer named Maria. This is a voice conversation, so speak naturally and conversationally, but you're the interviewer asking questions. You control the conversation flow.
 
-2. **YOU MUST SPEAK FIRST** - When the conversation starts, immediately greet the candidate warmly and ask your first question. Don't wait - you lead the conversation.
+2. **YOU MUST SPEAK FIRST** - When the conversation starts, immediately greet the candidate by saying "Hello ${userName || 'there'}, I'm Maria, and I'll be conducting your interview today." Then immediately ask your first question. Don't wait - you lead the conversation.
 
-3. **BOUND BY DOMAIN: ${domain}** - You MUST stay focused on ${domain} topics. All your questions must be related to ${domain}:
+3. **ASK EXACTLY 4 QUESTIONS - NO MORE, NO LESS**:
+   - You will ask exactly 4 questions total
+   - After the candidate answers each question, you MUST immediately ask the next question
+   - Do NOT let the candidate ask questions or control the flow
+   - After the 4th question is answered, end the interview
+
+4. **BOUND BY DOMAIN: ${domain}** - You MUST stay focused on ${domain} topics. All your questions must be related to ${domain}:
    - ${domain} fundamentals and core concepts
    - Real-world scenarios in ${domain}
    - Problem-solving specific to ${domain}
@@ -274,43 +294,48 @@ CRITICAL INTERVIEW INSTRUCTIONS - ACT AS AN INTERVIEWER:
    
    **DO NOT** ask questions outside of ${domain}. If the candidate goes off-topic, gently redirect them back to ${domain} topics.
 
-4. **Generate and ask 5-8 specific questions** - Create questions dynamically:
-   - Ask follow-up questions based on their answers
-   - Vary question types: conceptual, practical, problem-solving, scenario-based
-   - Make questions appropriate for ${difficulty} level
-   - Focus ONLY on ${domain} knowledge and skills
-
-5. **Natural conversation flow (like chatting with Gemini):**
-   - After each answer, acknowledge briefly: "That's interesting", "I see", "Good point"
-   - Provide brief, constructive feedback when appropriate
-   - Immediately ask the next question or a follow-up
+5. **AFTER EACH ANSWER - ASK THE NEXT QUESTION IMMEDIATELY**:
+   - After the candidate answers, provide brief acknowledgment: "That's interesting", "I see", "Good point", "Thank you for that answer"
+   - Provide brief, constructive feedback when appropriate (1-2 sentences max)
+   - IMMEDIATELY ask the next question - do NOT wait for the candidate to continue
+   - Do NOT let the candidate ask questions or say "let's move to the next question" - YOU control the flow
    - Keep it flowing naturally - no long pauses
-   - Speak conversationally, not robotically
 
-6. **Voice conversation style:**
+6. **CONVERSATION FLOW - YOU ARE IN CONTROL**:
+   - Question 1: Ask your first question after greeting
+   - Candidate answers → Acknowledge briefly → Ask Question 2 immediately
+   - Candidate answers → Acknowledge briefly → Ask Question 3 immediately
+   - Candidate answers → Acknowledge briefly → Ask Question 4 immediately
+   - Candidate answers → End the interview
+
+7. **DO NOT ALLOW CANDIDATE TO CONTROL THE FLOW**:
+   - If candidate says "let's move to the next question" or "go to the next question" → Ignore it and ask your next question anyway
+   - If candidate asks you a question → Politely redirect: "I appreciate your question, but let me continue with the interview. [Ask your next question]"
+   - You are Maria, the interviewer - you ask questions, the candidate answers
+
+8. **Voice conversation style:**
    - Be professional but friendly and encouraging
    - Speak naturally, like you're having a real conversation
    - Use conversational language, not formal scripts
-   - Allow natural pauses for thinking
    - Provide positive reinforcement: "That's a good point", "Interesting approach"
    - Be specific: "Good explanation of X, let me ask you about Y"
 
-7. **End the interview:**
-   - After 5-8 questions, wrap up naturally
-   - Say: "Thank you for your time today. Do you have any questions for me?"
-   - Provide brief, encouraging feedback
-   - End warmly: "Thank you for participating. Good luck with your job search!"
+9. **End the interview after 4 questions:**
+   - After the 4th question is answered, say: "Thank you for your time today, ${userName || 'candidate'}. That concludes our interview. Do you have any questions for me?"
+   - Provide brief, encouraging summary: "You demonstrated good understanding of [topic]. Keep practicing and you'll continue to improve."
+   - End with: "Thank you for participating in this practice interview. Good luck with your job search!"
 
 EXAMPLE QUESTIONS FOR ${domain} (${difficulty} level):
 ${generateExampleQuestions(domain, difficulty)}
 
 REMEMBER:
+- Your name is Maria - introduce yourself as Maria
 - You are conducting a REAL interview - ask questions actively
+- Ask EXACTLY 4 questions - count them as you go
+- After each answer, immediately ask the next question - don't wait
 - Stay BOUND to ${domain} - all questions must relate to ${domain}
-- Generate questions on the fly based on ${domain} and ${difficulty} level
-- Act like you're chatting with Gemini, but you're the interviewer
+- You control the conversation - don't let the candidate take control
 - This is a voice conversation - be natural and conversational
-- Don't just respond - LEAD the conversation with questions
 - Focus specifically on ${domain} knowledge and skills - do not deviate`;
 }
 
@@ -430,6 +455,7 @@ export async function listAvailableModels(): Promise<string[]> {
     // Note: The SDK doesn't have a direct listModels method
     // This is a helper that tries common model names
     const commonModels = [
+      'gemini-2.5-flash',         // Latest model
       'gemini-1.5-flash',
       'gemini-1.5-pro',
       'gemini-pro',
@@ -456,16 +482,10 @@ export async function listAvailableModels(): Promise<string[]> {
 
 /**
  * Get Gemini model for conversation
- * Try different model names based on availability
+ * Use gemini-2.5-flash as the primary model
  */
 export function getGeminiModel() {
-  // Try gemini-1.5-flash-latest first (for v1beta API)
-  // Fallback to standard name if needed
-  try {
-    return genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
-  } catch {
-    return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-  }
+  return genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 }
 
 /**
@@ -517,15 +537,11 @@ export async function startInterviewConversation(
 
 Now, greet the candidate and ask your first question. Keep your response concise (2-3 sentences max) - just a brief greeting and the first question.`;
 
-  // Try different model name formats for v1beta API
-  // The v1beta API may require specific model name formats
+  // Try different model name formats - prioritize gemini-2.5-flash
   const modelNames = [
-    'gemini-1.5-flash-001',     // Versioned format for v1beta
-    'gemini-1.5-flash-latest',  // Latest version format
-    'gemini-1.5-flash',         // Standard format
-    'gemini-1.5-pro-001',       // Pro versioned format
-    'gemini-1.5-pro-latest',    // Pro latest format
-    'gemini-1.5-pro',           // Pro standard format
+    'gemini-2.5-flash',         // Primary model - latest version
+    'gemini-1.5-flash-latest',  // Fallback to latest flash
+    'gemini-1.5-flash',         // Fallback to standard flash
   ];
 
   // Try each API key until one works
@@ -607,24 +623,36 @@ export async function continueInterviewConversation(
   systemPrompt?: string
 ): Promise<string> {
   // Build conversation history for Gemini
-  const history = conversationHistory.slice(-10).map(msg => ({
+  // IMPORTANT: Gemini requires the first message to be from 'user', not 'model'
+  // Filter and map the history, ensuring we start with a user message
+  const mappedHistory = conversationHistory.slice(-10).map(msg => ({
     role: msg.role === 'user' ? 'user' : 'model',
     parts: [{ text: msg.text }],
   }));
 
-  // If history is empty or very short, prepend system instruction
-  let chatHistory = history;
-  if (history.length < 2) {
+  // Ensure the history starts with a user message
+  // If it starts with model, we need to either skip it or add a user message first
+  let chatHistory = mappedHistory;
+  
+  // Find the first user message index
+  const firstUserIndex = mappedHistory.findIndex(msg => msg.role === 'user');
+  
+  if (firstUserIndex === -1) {
+    // No user messages in history - this shouldn't happen, but handle it
+    // Add a dummy user message to start
     chatHistory = [
       {
-        role: 'model' as const,
-        parts: [{ text: `I understand. I'm conducting a ${context.difficulty} level interview for ${context.role}. I'll ask relevant questions and provide feedback.` }],
+        role: 'user' as const,
+        parts: [{ text: 'Hello, let\'s start the interview.' }],
       },
-      ...history,
+      ...mappedHistory,
     ];
+  } else if (firstUserIndex > 0) {
+    // History starts with model messages - remove them and start from first user message
+    chatHistory = mappedHistory.slice(firstUserIndex);
   }
 
-  // Get the last user message
+  // Get the last user message (the current answer)
   const lastUserMessage = conversationHistory.filter(msg => msg.role === 'user').pop()?.text || '';
   const messageToSend = lastUserMessage || 'Continue the interview with the next question.';
 
@@ -637,14 +665,11 @@ export async function continueInterviewConversation(
       const apiKey = getNextApiKey();
       const keyNumber = ((currentKeyIndex - 1 + ALL_API_KEYS.length) % ALL_API_KEYS.length) + 1;
       
-      // Try different model name formats for v1beta API
+      // Try different model name formats - prioritize gemini-2.5-flash
       const modelNameOptions = [
-        'gemini-1.5-flash-001',
-        'gemini-1.5-flash-latest',
-        'gemini-1.5-flash',
-        'gemini-1.5-pro-001',
-        'gemini-1.5-pro-latest',
-        'gemini-1.5-pro',
+        'gemini-2.5-flash',         // Primary model - latest version
+        'gemini-1.5-flash-latest',  // Fallback to latest flash
+        'gemini-1.5-flash',         // Fallback to standard flash
       ];
       
       let success = false;

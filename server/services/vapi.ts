@@ -57,7 +57,7 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
       name: assistantName,
       model: {
         provider: 'google',
-        model: 'gemini-1.5-pro',
+        model: 'gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -71,9 +71,9 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
       },
       // First message - This will be automatically spoken by Vapi when the call starts
       // Vapi will speak this greeting immediately upon call connection
-      // Make it conversational like chatting with Gemini
+      // Maria introduces herself and asks the first question
       const domain = config.domainName || config.role;
-      firstMessage: `Hello${config.userName ? ` ${config.userName}` : ''}! Welcome to your technical interview practice session. I'm your AI interviewer powered by Gemini, and I'll be conducting your interview today focused specifically on ${domain} at ${config.difficulty} level. This will be a natural voice conversation - just like chatting, but I'll be asking you interview questions about ${domain}. Let's begin! My first question for you is: Can you tell me about your experience with ${domain}? What technologies and tools are you most familiar with in this domain?`,
+      firstMessage: `Hello${config.userName ? ` ${config.userName}` : ''}! I'm Maria, and I'll be conducting your technical interview today for the ${domain} position at ${config.difficulty} level. I'll be asking you 4 questions about ${domain}. Let's begin! My first question for you is: Can you explain what ${domain} is and why it's important in software development?`,
       
       // Ensure the assistant speaks first
       firstMessageMode: 'assistant-speaks-first',
