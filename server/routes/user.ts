@@ -477,38 +477,28 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
       }
     }
 
-    // Use Gemini AI to start the interview conversation
-    console.log('[Start Conversation] Using Gemini AI to start interview...');
-    const { startInterviewConversation, generateInterviewPrompt } = await import('../services/gemini');
+    // Use JSON-based interview questions with Maria as interviewer
+    console.log('[Start Conversation] Using JSON questions with Maria interviewer...');
+    const { getFirstQuestion } = await import('../services/interviewService');
     
-    const interviewContext = {
-      role: domainName || interview.role,
-      difficulty: interview.difficulty as 'beginner' | 'intermediate' | 'advanced' | 'expert',
-      language: interview.language || 'english',
-      userName: userName,
-      domainName: domainName,
-      domainDescription: domainDescription,
-    };
-
-    // Generate interview prompt with domain information
-    const systemPrompt = generateInterviewPrompt(interviewContext);
-    
-    // Start conversation with Gemini
-    const { message, conversationId } = await startInterviewConversation(interviewContext, systemPrompt);
-    
-    // Store conversation ID in interview metadata (we'll use a simple approach)
-    await connection.query(
-      'UPDATE interviews SET vapi_call_id = ? WHERE id = ?',
-      [conversationId, interviewId]
+    const question = getFirstQuestion(
+      interview.role,
+      interview.difficulty as 'beginner' | 'intermediate' | 'advanced',
+      interview.id
     );
 
-    console.log(`[Start Conversation] ✅ Gemini AI conversation started! Conversation ID: ${conversationId}`);
+    if (!question) {
+      return res.status(500).json({ message: 'Failed to get first question' });
+    }
+
+    // Maria's greeting with the first question
+    const greeting = `Hello ${userName || 'there'}! I'm Maria, and I'll be conducting your interview today for the ${domainName || interview.role} position at ${interview.difficulty} level. I'll be asking you 4 questions. Let's begin! ${question.text}`;
 
     res.json({
-      message,
-      conversationId,
-      questionId: 1, // Placeholder - Gemini doesn't use question IDs
-      question: message, // The message from Gemini contains the question
+      message: greeting,
+      questionId: question.id,
+      question: question.text,
+      interviewComplete: false,
     });
   } catch (error: any) {
     console.error('[Start Conversation] Error:', error);
@@ -593,10 +583,9 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         }
       }
 
-      // Use Gemini AI to continue the interview conversation
-      console.log('[Continue Conversation] Using Gemini AI to continue interview...');
-      const { continueInterviewConversation, generateInterviewPrompt } = await import('../services/gemini');
-      const { checkProfanity } = await import('../services/interviewService');
+      // Use JSON-based interview with Maria as interviewer
+      console.log('[Continue Conversation] Using JSON questions with Maria interviewer...');
+      const { checkProfanity, checkOffTopic, getNextQuestionByKeywords } = await import('../services/interviewService');
       
       // Get the last user message (their answer)
       const lastUserMessage = conversationHistory
@@ -610,24 +599,24 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         });
       }
 
-      // Count questions asked so far (count assistant messages that contain questions)
-      // Maria will ask exactly 4 questions
-      const assistantMessages = conversationHistory.filter(msg => msg.role === 'assistant').length;
+      // Count questions asked so far
+      const questionsAsked = conversationHistory.filter(msg => msg.role === 'assistant').length;
       const MAX_QUESTIONS = 4; // Maria asks exactly 4 questions
+
+      // Get the last question asked
+      const lastQuestion = conversationHistory
+        .filter(msg => msg.role === 'assistant')
+        .pop()?.text || '';
 
       // Check for profanity/abusive language
       const hasProfanity = checkProfanity(lastUserMessage);
       if (hasProfanity) {
         console.log(`[Continue Conversation] ⚠️ Profanity detected`);
-        // Get the last assistant message to repeat the question
-        const lastAssistantMessage = conversationHistory
-          .filter(msg => msg.role === 'assistant')
-          .pop()?.text || '';
         
         return res.json({
-          message: "I understand you may be frustrated, but let's keep our conversation professional. Please focus on answering the technical questions. " + (lastAssistantMessage || "Let me ask you again."),
-          questionId: assistantMessages, // Use message count as ID
-          question: lastAssistantMessage,
+          message: "I understand you may be frustrated, but let's keep our conversation professional. Please focus on answering the technical questions. " + lastQuestion,
+          questionId: questionsAsked,
+          question: lastQuestion,
           evaluation: {
             score: 0,
             feedback: 'Please maintain a professional tone during the interview.',
@@ -636,54 +625,25 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         });
       }
 
-      // Basic off-topic check (simplified - Gemini will handle domain-specific checks)
-      // We'll let Gemini handle most of the conversation flow
-      
-      // Prepare interview context
-      const interviewContext = {
-        role: domainName || interview.role,
-        difficulty: interview.difficulty as 'beginner' | 'intermediate' | 'advanced' | 'expert',
-        language: interview.language || 'english',
-        userName: userName,
-        domainName: domainName,
-        domainDescription: domainDescription,
-      };
-
-      // Generate interview prompt with domain information
-      const systemPrompt = generateInterviewPrompt(interviewContext);
-      
-      // Convert conversation history to Gemini format
-      const geminiHistory = conversationHistory.map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        text: msg.text || msg.content || '',
-      }));
-
-      // Continue conversation with Gemini
-      let geminiResponse: string;
-      try {
-        geminiResponse = await continueInterviewConversation(
-          interviewContext,
-          geminiHistory,
-          systemPrompt
-        );
-        console.log(`[Continue Conversation] ✅ Gemini AI response received (${geminiResponse.length} chars)`);
-      } catch (error: any) {
-        console.error('[Continue Conversation] Gemini API error:', error);
-        return res.status(500).json({
-          message: 'Failed to get response from Gemini AI',
-          error: error.message,
+      // Check if answer is off-topic
+      const isOffTopic = checkOffTopic(lastUserMessage, lastQuestion);
+      if (isOffTopic) {
+        console.log(`[Continue Conversation] ⚠️ Off-topic response detected`);
+        
+        return res.json({
+          message: "Don't go off topic. Please answer the question I asked: " + lastQuestion,
+          questionId: questionsAsked,
+          question: lastQuestion,
+          evaluation: {
+            score: 0,
+            feedback: 'Please stay on topic and answer the question.',
+          },
+          interviewComplete: false,
         });
       }
 
-      // Check if interview is complete
-      // Maria asks exactly 4 questions, so after 4 assistant messages (including the current response), we're done
-      const questionsAsked = assistantMessages + 1; // +1 for the current response
-      const isComplete = geminiResponse.toLowerCase().includes('thank you for your time') ||
-                        geminiResponse.toLowerCase().includes('concludes our interview') ||
-                        geminiResponse.toLowerCase().includes('interview is complete') ||
-                        questionsAsked >= MAX_QUESTIONS;
-
-      if (isComplete) {
+      // Check if interview is complete (4 questions asked)
+      if (questionsAsked >= MAX_QUESTIONS) {
         // Store final conversation for report
         await connection.query(
           `INSERT INTO interview_feedback (interview_id, category, score, feedback, details)
@@ -693,13 +653,15 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
             interviewId,
             'Final',
             0,
-            'Interview completed via Gemini AI',
-            JSON.stringify({ conversationHistory, finalMessage: geminiResponse }),
+            'Interview completed',
+            JSON.stringify({ conversationHistory }),
           ]
         );
 
+        const closingMessage = `Thank you for your time today, ${userName || 'candidate'}. That concludes our interview. You demonstrated understanding of the ${domainName || interview.role} concepts. Keep practicing and you'll continue to improve. Thank you for participating in this practice interview. Good luck!`;
+
         return res.json({
-          message: geminiResponse,
+          message: closingMessage,
           questionId: null,
           evaluation: {
             score: 0,
@@ -709,15 +671,33 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         });
       }
 
-      // Return Gemini's response as the next question/message
+      // Get next question from JSON data
+      const nextQuestion = getNextQuestionByKeywords(
+        lastUserMessage,
+        interview.role,
+        interview.difficulty as 'beginner' | 'intermediate' | 'advanced',
+        interview.id
+      );
+
+      if (!nextQuestion) {
+        return res.status(500).json({ message: 'Failed to get next question' });
+      }
+
+      // Maria's response with acknowledgment and next question
+      const acknowledgments = [
+        "Thank you for that answer.",
+        "I see.",
+        "That's interesting.",
+        "Good point.",
+        "Okay, got it.",
+      ];
+      const randomAck = acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
+      const mariaResponse = `${randomAck} ${nextQuestion.text}`;
+
       res.json({
-        message: geminiResponse,
-        questionId: assistantMessages + 1, // Increment for next question
-        question: geminiResponse, // Gemini's response contains the question/feedback
-        evaluation: {
-          score: 0,
-          feedback: 'Continue the conversation',
-        },
+        message: mariaResponse,
+        questionId: nextQuestion.id,
+        question: nextQuestion.text,
         interviewComplete: false,
       });
     } finally {

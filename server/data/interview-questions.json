@@ -33,173 +33,53 @@
       },
       {
         "id": 4,
-        "question": "What are variables in JavaScript?",
-        "expectedSummary": "Variables store data values. They can be created using var, let, or const.",
-        "keywords": ["variable", "var", "let", "const", "value", "store", "data"],
-        "routing": {"function": 5, "array": 8, "object": 9},
-        "defaultNext": 5,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "It's okay. Variables simply hold data values. Let's try another question."
-      },
-      {
-        "id": 5,
         "question": "What is the DOM and how is it used?",
         "expectedSummary": "The DOM is the Document Object Model; it's a structure that allows JavaScript to access and manipulate HTML elements.",
         "keywords": ["dom", "document object model", "html", "elements", "manipulate", "javascript"],
-        "routing": {"event": 7, "react": 10, "framework": 10},
-        "defaultNext": 6,
+        "routing": {"event": 5, "react": 6, "framework": 6},
+        "defaultNext": 5,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "No problem. The DOM lets JavaScript interact with the webpage. Good effort!"
       },
       {
-        "id": 6,
-        "question": "What are JavaScript functions and how do you create them?",
-        "expectedSummary": "Functions are reusable blocks of code that perform specific tasks. They can be created using function declarations, function expressions, or arrow functions.",
-        "keywords": ["function", "declaration", "expression", "arrow", "reusable", "code", "parameters"],
-        "routing": {"async": 7, "callback": 7, "array": 8},
-        "defaultNext": 7,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's okay. Functions help organize code into reusable pieces. Let's continue."
-      },
-      {
-        "id": 7,
+        "id": 5,
         "question": "What are JavaScript events and how do you handle them?",
         "expectedSummary": "Events are user interactions like clicks, keypresses, or form submissions. They can be handled using event listeners.",
         "keywords": ["event", "click", "listener", "handler", "interaction", "addEventListener"],
-        "routing": {"async": 8, "promise": 8, "api": 8},
-        "defaultNext": 8,
+        "routing": {"async": 6, "promise": 6, "api": 6},
+        "defaultNext": 6,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "No worries. Events make web pages interactive. Let's move on."
       },
       {
-        "id": 8,
-        "question": "What are arrays in JavaScript and how do you manipulate them?",
-        "expectedSummary": "Arrays are ordered collections of data. They can be manipulated using methods like push, pop, map, filter, and forEach.",
-        "keywords": ["array", "push", "pop", "map", "filter", "forEach", "collection", "data"],
-        "routing": {"object": 9, "json": 9, "react": 10},
-        "defaultNext": 9,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "It's fine. Arrays store lists of data. Let's try another question."
-      },
-      {
-        "id": 9,
-        "question": "What are JavaScript objects and how do you access their properties?",
-        "expectedSummary": "Objects are collections of key-value pairs. Properties can be accessed using dot notation or bracket notation.",
-        "keywords": ["object", "property", "key", "value", "dot notation", "bracket notation"],
-        "routing": {"json": 10, "api": 10, "react": 10},
-        "defaultNext": 10,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's alright. Objects store related data together. Good effort!"
-      },
-      {
-        "id": 10,
+        "id": 6,
         "question": "What is React and why is it popular?",
         "expectedSummary": "React is a JavaScript library for building user interfaces. It's popular because of its component-based architecture and virtual DOM.",
         "keywords": ["react", "library", "component", "virtual dom", "ui", "interface", "jsx"],
-        "routing": {"component": 11, "state": 11, "props": 11},
-        "defaultNext": 11,
+        "routing": {"component": 7, "state": 7, "props": 7},
+        "defaultNext": 7,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "No problem. React helps build interactive web applications. Great job!"
       },
       {
-        "id": 11,
-        "question": "What are HTML tags and give some examples?",
-        "expectedSummary": "HTML tags are elements that define the structure of a webpage. Examples include div, p, h1, img, a, button, and form tags.",
-        "keywords": ["tag", "element", "div", "paragraph", "heading", "image", "link", "button"],
-        "routing": {"css": 2, "style": 2, "javascript": 3},
-        "defaultNext": 12,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's okay. HTML tags structure content on a page. Let's continue."
-      },
-      {
-        "id": 12,
-        "question": "What is the difference between inline and block elements in HTML?",
-        "expectedSummary": "Block elements take full width and start on a new line, while inline elements only take necessary width and stay on the same line.",
-        "keywords": ["inline", "block", "element", "width", "line", "display"],
-        "routing": {"css": 2, "display": 2, "layout": 2},
-        "defaultNext": 13,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "No worries. Block and inline elements control layout. Let's move on."
-      },
-      {
-        "id": 13,
-        "question": "What is a CSS selector and how does it work?",
-        "expectedSummary": "CSS selectors target HTML elements to apply styles. Common selectors include element, class, ID, and attribute selectors.",
-        "keywords": ["selector", "class", "id", "element", "attribute", "target", "style"],
-        "routing": {"css": 2, "style": 2, "specificity": 14},
-        "defaultNext": 14,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's fine. Selectors help target elements for styling. Good effort!"
-      },
-      {
-        "id": 14,
+        "id": 7,
         "question": "What is responsive design and why is it important?",
         "expectedSummary": "Responsive design makes websites adapt to different screen sizes using CSS media queries and flexible layouts.",
         "keywords": ["responsive", "mobile", "screen", "media query", "flexible", "layout", "adaptive"],
-        "routing": {"css": 2, "media": 2, "flexbox": 15},
-        "defaultNext": 15,
+        "routing": {"css": 2, "media": 2, "flexbox": 8},
+        "defaultNext": 8,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "It's okay. Responsive design ensures websites work on all devices. Let's continue."
       },
       {
-        "id": 15,
+        "id": 8,
         "question": "What is Flexbox in CSS?",
         "expectedSummary": "Flexbox is a CSS layout method that allows flexible arrangement of items in a container, making it easier to create responsive layouts.",
         "keywords": ["flexbox", "flex", "layout", "container", "items", "direction", "justify", "align"],
-        "routing": {"css": 2, "grid": 16, "layout": 2},
-        "defaultNext": 16,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "No problem. Flexbox helps create flexible layouts. Good job!"
-      },
-      {
-        "id": 16,
-        "question": "What is CSS Grid and how is it different from Flexbox?",
-        "expectedSummary": "CSS Grid is a two-dimensional layout system for rows and columns, while Flexbox is one-dimensional for either rows or columns.",
-        "keywords": ["grid", "two-dimensional", "rows", "columns", "layout", "flexbox", "comparison"],
-        "routing": {"css": 2, "flexbox": 15, "layout": 2},
-        "defaultNext": 17,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's alright. Grid and Flexbox are both layout tools. Let's move on."
-      },
-      {
-        "id": 17,
-        "question": "What are data types in JavaScript?",
-        "expectedSummary": "JavaScript has primitive types like string, number, boolean, null, undefined, and complex types like object and array.",
-        "keywords": ["data type", "string", "number", "boolean", "null", "undefined", "object", "array"],
-        "routing": {"variable": 4, "object": 9, "array": 8},
-        "defaultNext": 18,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "It's fine. Data types categorize different kinds of values. Let's continue."
-      },
-      {
-        "id": 18,
-        "question": "What is a string in JavaScript?",
-        "expectedSummary": "A string is a sequence of characters used to represent text. Strings can be created using single quotes, double quotes, or template literals.",
-        "keywords": ["string", "text", "character", "quote", "template literal", "concatenation"],
-        "routing": {"variable": 4, "function": 5, "data": 17},
-        "defaultNext": 19,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's okay. Strings represent text data. Good effort!"
-      },
-      {
-        "id": 19,
-        "question": "What is a loop in JavaScript and give examples?",
-        "expectedSummary": "Loops repeat code execution. Examples include for, while, do-while, and forEach loops for arrays.",
-        "keywords": ["loop", "for", "while", "forEach", "iterate", "repeat", "array"],
-        "routing": {"array": 8, "function": 5, "iteration": 8},
-        "defaultNext": 20,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "No worries. Loops help repeat actions. Let's try another question."
-      },
-      {
-        "id": 20,
-        "question": "What is conditional statements in JavaScript?",
-        "expectedSummary": "Conditional statements execute code based on conditions. Examples include if, else, else if, and switch statements.",
-        "keywords": ["if", "else", "switch", "condition", "boolean", "true", "false"],
-        "routing": {"variable": 4, "function": 5, "logic": 3},
+        "routing": {"css": 2, "grid": 9, "layout": 2},
         "defaultNext": null,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's fine. Conditionals control program flow. Great job on the interview!"
+        "systemReplyOnLowKnowledge": "No problem. Flexbox helps create flexible layouts. Good job!"
       }
     ],
     "intermediate": [
@@ -215,153 +95,63 @@
       },
       {
         "id": 2,
-        "question": "What is 'this' in JavaScript and how does it work?",
-        "expectedSummary": "'this' refers to the context in which a function is called. Its value depends on how the function is invoked.",
-        "keywords": ["this", "context", "bind", "call", "apply", "arrow function", "scope"],
-        "routing": {"prototype": 3, "class": 3, "async": 4},
-        "defaultNext": 3,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "No worries. 'this' can be tricky. Let's continue."
-      },
-      {
-        "id": 3,
         "question": "What are Promises in JavaScript and how do you use them?",
         "expectedSummary": "Promises represent the eventual completion of an asynchronous operation. They can be used with .then(), .catch(), or async/await.",
         "keywords": ["promise", "async", "await", "then", "catch", "asynchronous", "resolve", "reject"],
-        "routing": {"async": 4, "await": 4, "fetch": 4},
-        "defaultNext": 4,
+        "routing": {"async": 3, "await": 3, "fetch": 3},
+        "defaultNext": 3,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "That's fine. Promises handle asynchronous operations. Let's move on."
       },
       {
-        "id": 4,
-        "question": "Explain the difference between let, const, and var in JavaScript.",
-        "expectedSummary": "var is function-scoped and can be redeclared. let and const are block-scoped. const cannot be reassigned, while let can.",
-        "keywords": ["let", "const", "var", "scope", "block", "function", "hoisting"],
-        "routing": {"hoisting": 5, "temporal": 5, "react": 6},
-        "defaultNext": 5,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "It's okay. These are important concepts. Let's try another question."
-      },
-      {
-        "id": 5,
+        "id": 3,
         "question": "What is the Virtual DOM in React and why is it used?",
         "expectedSummary": "The Virtual DOM is a JavaScript representation of the real DOM. React uses it to efficiently update the UI by comparing changes.",
         "keywords": ["virtual dom", "react", "dom", "diffing", "reconciliation", "performance", "update"],
-        "routing": {"component": 6, "state": 6, "props": 6},
-        "defaultNext": 6,
+        "routing": {"component": 4, "state": 4, "props": 4},
+        "defaultNext": 4,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "No problem. Virtual DOM improves React's performance. Good effort!"
       },
       {
-        "id": 6,
-        "question": "What is the difference between React state and props?",
-        "expectedSummary": "State is internal data managed by a component, while props are data passed from parent to child components. State can change, props are read-only.",
-        "keywords": ["state", "props", "component", "parent", "child", "mutable", "immutable"],
-        "routing": {"hook": 7, "usestate": 7, "useeffect": 7},
-        "defaultNext": 7,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's alright. State and props are fundamental React concepts. Great job!"
-      },
-      {
-        "id": 7,
+        "id": 4,
         "question": "What are React Hooks and why were they introduced?",
         "expectedSummary": "Hooks allow functional components to use state and lifecycle features. They were introduced to simplify component logic and enable code reuse.",
         "keywords": ["hook", "usestate", "useeffect", "functional", "component", "state", "lifecycle"],
-        "routing": {"usestate": 8, "useeffect": 8, "custom": 8},
-        "defaultNext": 8,
+        "routing": {"usestate": 5, "useeffect": 5, "custom": 5},
+        "defaultNext": 5,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "No worries. Hooks make React components simpler. Let's continue."
       },
       {
-        "id": 8,
+        "id": 5,
         "question": "Explain async/await in JavaScript.",
         "expectedSummary": "async/await is syntax for handling Promises. async functions return Promises, and await pauses execution until the Promise resolves.",
         "keywords": ["async", "await", "promise", "asynchronous", "resolve", "reject", "error"],
-        "routing": {"promise": 3, "fetch": 9, "api": 9},
-        "defaultNext": 9,
+        "routing": {"promise": 2, "fetch": 6, "api": 6},
+        "defaultNext": 6,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "That's fine. async/await simplifies asynchronous code. Good effort!"
       },
       {
-        "id": 9,
+        "id": 6,
         "question": "What is the Fetch API and how do you use it?",
         "expectedSummary": "The Fetch API provides an interface for fetching resources. It returns a Promise and is used to make HTTP requests.",
         "keywords": ["fetch", "api", "http", "request", "response", "promise", "async"],
-        "routing": {"async": 8, "promise": 3, "axios": 10},
-        "defaultNext": 10,
+        "routing": {"async": 5, "promise": 2, "axios": 7},
+        "defaultNext": 7,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "It's okay. Fetch is used to get data from servers. Let's move on."
       },
       {
-        "id": 10,
-        "question": "What is destructuring in JavaScript?",
-        "expectedSummary": "Destructuring extracts values from arrays or objects into distinct variables using a shorter syntax.",
-        "keywords": ["destructuring", "array", "object", "variable", "extract", "spread"],
-        "routing": {"array": 11, "object": 11, "react": 6},
-        "defaultNext": 11,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "No problem. Destructuring simplifies variable assignment. Great job!"
-      },
-      {
-        "id": 11,
-        "question": "What are arrow functions in JavaScript?",
-        "expectedSummary": "Arrow functions are a shorter syntax for writing functions. They don't have their own 'this' binding and are always anonymous.",
-        "keywords": ["arrow function", "syntax", "this", "binding", "anonymous", "shorter"],
-        "routing": {"function": 12, "this": 2, "closure": 1},
-        "defaultNext": 12,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's alright. Arrow functions provide concise syntax. Let's continue."
-      },
-      {
-        "id": 12,
-        "question": "What is hoisting in JavaScript?",
-        "expectedSummary": "Hoisting moves variable and function declarations to the top of their scope before code execution, allowing them to be used before declaration.",
-        "keywords": ["hoisting", "declaration", "var", "function", "scope", "temporal dead zone"],
-        "routing": {"var": 4, "let": 4, "const": 4},
-        "defaultNext": 13,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "No worries. Hoisting affects how declarations work. Good effort!"
-      },
-      {
-        "id": 13,
-        "question": "What is the spread operator in JavaScript?",
-        "expectedSummary": "The spread operator (...) expands arrays or objects into individual elements, useful for copying, merging, or passing arguments.",
-        "keywords": ["spread", "operator", "array", "object", "copy", "merge", "expand"],
-        "routing": {"array": 14, "object": 14, "react": 6},
-        "defaultNext": 14,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's fine. The spread operator is useful for working with arrays and objects. Let's move on."
-      },
-      {
-        "id": 14,
-        "question": "What are higher-order functions in JavaScript?",
-        "expectedSummary": "Higher-order functions are functions that take other functions as arguments or return functions. Examples include map, filter, and reduce.",
-        "keywords": ["higher-order", "function", "map", "filter", "reduce", "callback", "array"],
-        "routing": {"array": 15, "function": 12, "callback": 15},
-        "defaultNext": 15,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "It's okay. Higher-order functions are powerful tools. Great job!"
-      },
-      {
-        "id": 15,
-        "question": "What is JSX in React?",
-        "expectedSummary": "JSX is a syntax extension that allows writing HTML-like code in JavaScript. It gets transpiled to React.createElement calls.",
-        "keywords": ["jsx", "syntax", "html", "javascript", "transpile", "react", "element"],
-        "routing": {"react": 6, "component": 6, "babel": 16},
-        "defaultNext": 16,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "No problem. JSX makes React code more readable. Let's continue."
-      },
-      {
-        "id": 16,
+        "id": 7,
         "question": "What is event bubbling in JavaScript?",
         "expectedSummary": "Event bubbling is when an event starts from the target element and propagates up through parent elements in the DOM tree.",
         "keywords": ["event bubbling", "propagation", "target", "parent", "dom", "event", "capture"],
-        "routing": {"event": 17, "dom": 17, "react": 6},
+        "routing": {"event": 8, "dom": 8, "react": 4},
         "defaultNext": null,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's alright. Event bubbling affects how events are handled. Excellent work on the interview!"
+        "systemReplyOnLowKnowledge": "That's alright. Event bubbling affects how events are handled. Excellent work!"
       }
     ],
     "advanced": [
@@ -387,73 +177,913 @@
       },
       {
         "id": 3,
-        "question": "What is Redux and when would you use it?",
-        "expectedSummary": "Redux is a state management library for JavaScript applications. It's useful for managing complex application state across multiple components.",
-        "keywords": ["redux", "state management", "store", "action", "reducer", "dispatch"],
-        "routing": {"middleware": 4, "thunk": 4, "saga": 4},
-        "defaultNext": 4,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's fine. Redux is for complex state management. Good effort!"
-      },
-      {
-        "id": 4,
-        "question": "What is the Context API in React?",
-        "expectedSummary": "The Context API provides a way to pass data through the component tree without prop drilling, useful for global state management.",
-        "keywords": ["context", "api", "provider", "consumer", "global", "state", "prop drilling"],
-        "routing": {"redux": 3, "state": 5, "hook": 5},
-        "defaultNext": 5,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "It's okay. Context API helps share state. Let's continue."
-      },
-      {
-        "id": 5,
-        "question": "What are custom hooks in React?",
-        "expectedSummary": "Custom hooks are reusable functions that contain stateful logic. They allow sharing logic between components and must start with 'use'.",
-        "keywords": ["custom hook", "reusable", "logic", "usestate", "useeffect", "sharing"],
-        "routing": {"hook": 6, "component": 6, "logic": 6},
-        "defaultNext": 6,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "No problem. Custom hooks promote code reuse. Great job!"
-      },
-      {
-        "id": 6,
         "question": "What is code splitting in React?",
         "expectedSummary": "Code splitting divides code into smaller chunks that load on demand, improving initial load time and performance.",
         "keywords": ["code splitting", "chunk", "lazy", "load", "performance", "bundle", "dynamic"],
-        "routing": {"performance": 2, "optimization": 2, "webpack": 7},
-        "defaultNext": 7,
+        "routing": {"performance": 2, "optimization": 2, "webpack": 4},
+        "defaultNext": 4,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
         "systemReplyOnLowKnowledge": "That's fine. Code splitting improves performance. Let's move on."
       },
       {
-        "id": 7,
+        "id": 4,
         "question": "What is server-side rendering (SSR) and why use it?",
         "expectedSummary": "SSR renders React components on the server, sending HTML to the client. It improves SEO, initial load time, and performance.",
         "keywords": ["ssr", "server-side rendering", "seo", "performance", "next", "hydrate"],
-        "routing": {"next": 8, "performance": 2, "seo": 8},
-        "defaultNext": 8,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "It's okay. SSR improves SEO and performance. Good effort!"
-      },
-      {
-        "id": 8,
-        "question": "What is the difference between controlled and uncontrolled components?",
-        "expectedSummary": "Controlled components have form data handled by React state, while uncontrolled components use refs to access form data directly from the DOM.",
-        "keywords": ["controlled", "uncontrolled", "component", "form", "state", "ref", "dom"],
-        "routing": {"form": 9, "state": 5, "ref": 9},
-        "defaultNext": 9,
-        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "No worries. Controlled vs uncontrolled affects form handling. Let's continue."
-      },
-      {
-        "id": 9,
-        "question": "What are React Portals and when would you use them?",
-        "expectedSummary": "Portals render children into a DOM node outside the parent component hierarchy, useful for modals, tooltips, and overlays.",
-        "keywords": ["portal", "dom", "modal", "tooltip", "overlay", "render", "hierarchy"],
-        "routing": {"component": 10, "dom": 10, "ui": 10},
+        "routing": {"next": 5, "performance": 2, "seo": 5},
         "defaultNext": null,
         "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
-        "systemReplyOnLowKnowledge": "That's alright. Portals help with complex UI rendering. Excellent work on the interview!"
+        "systemReplyOnLowKnowledge": "It's okay. SSR improves SEO and performance. Excellent work!"
+      }
+    ]
+  },
+  "mern": {
+    "beginner": [
+      {
+        "id": 1,
+        "question": "What does MERN stand for and what are its components?",
+        "expectedSummary": "MERN stands for MongoDB, Express.js, React, and Node.js. It's a full-stack JavaScript framework for building web applications.",
+        "keywords": ["mern", "mongodb", "express", "react", "node", "stack", "javascript"],
+        "routing": {"mongodb": 2, "express": 3, "react": 4},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. MERN is MongoDB, Express, React, and Node. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What is MongoDB and why is it used in MERN stack?",
+        "expectedSummary": "MongoDB is a NoSQL database that stores data in JSON-like documents. It's used in MERN because it works well with JavaScript and JSON data.",
+        "keywords": ["mongodb", "nosql", "database", "document", "json", "collection", "bson"],
+        "routing": {"express": 3, "node": 4, "api": 5},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. MongoDB is a NoSQL database for storing data. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "What is Express.js and what role does it play in MERN?",
+        "expectedSummary": "Express.js is a Node.js web framework that simplifies building APIs and handling HTTP requests and responses.",
+        "keywords": ["express", "framework", "node", "api", "http", "routing", "middleware"],
+        "routing": {"node": 4, "api": 5, "routing": 5},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Express helps build APIs with Node.js. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "What is Node.js and why is it important in MERN stack?",
+        "expectedSummary": "Node.js is a JavaScript runtime that allows running JavaScript on the server side. It enables full-stack JavaScript development.",
+        "keywords": ["node", "javascript", "server", "runtime", "backend", "v8"],
+        "routing": {"express": 3, "api": 5, "mongodb": 2},
+        "defaultNext": 5,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Node.js runs JavaScript on the server. Let's move on."
+      },
+      {
+        "id": 5,
+        "question": "What is a REST API and how is it used in MERN?",
+        "expectedSummary": "REST API is a set of rules for building web services. In MERN, Express creates RESTful APIs that React frontend consumes to interact with MongoDB.",
+        "keywords": ["rest", "api", "http", "get", "post", "put", "delete", "endpoint"],
+        "routing": {"express": 3, "mongodb": 2, "react": 6},
+        "defaultNext": 6,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. REST APIs connect frontend and backend. Let's continue."
+      },
+      {
+        "id": 6,
+        "question": "How does React connect to the backend in MERN stack?",
+        "expectedSummary": "React connects to the backend using HTTP requests through fetch or axios to call REST APIs built with Express and Node.",
+        "keywords": ["react", "fetch", "axios", "api", "http", "request", "backend"],
+        "routing": {"api": 5, "fetch": 7, "state": 7},
+        "defaultNext": 7,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. React uses fetch or axios to call APIs. Good effort!"
+      },
+      {
+        "id": 7,
+        "question": "What is middleware in Express.js?",
+        "expectedSummary": "Middleware are functions that execute during the request-response cycle. They can modify requests, responses, or handle errors.",
+        "keywords": ["middleware", "express", "function", "request", "response", "next", "error"],
+        "routing": {"express": 3, "error": 8, "authentication": 8},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Middleware processes requests and responses. Great job!"
+      }
+    ],
+    "intermediate": [
+      {
+        "id": 1,
+        "question": "How do you handle authentication in MERN stack?",
+        "expectedSummary": "Authentication can be handled using JWT tokens, bcrypt for password hashing, and middleware to protect routes. Sessions or OAuth can also be used.",
+        "keywords": ["authentication", "jwt", "token", "bcrypt", "password", "hash", "middleware"],
+        "routing": {"jwt": 2, "authorization": 2, "security": 3},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. Authentication involves JWT and password hashing. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What is JWT and how is it used for authentication?",
+        "expectedSummary": "JWT (JSON Web Token) is a compact token format for securely transmitting information. It's used to authenticate users by storing user data in a signed token.",
+        "keywords": ["jwt", "token", "authentication", "sign", "verify", "payload", "header"],
+        "routing": {"authentication": 1, "security": 3, "middleware": 4},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. JWT creates secure tokens for authentication. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "How do you structure a MERN application for scalability?",
+        "expectedSummary": "Structure using MVC pattern, separate routes and controllers, use environment variables, implement proper error handling, and organize code into modules.",
+        "keywords": ["structure", "mvc", "scalability", "routes", "controllers", "models", "separation"],
+        "routing": {"mvc": 4, "architecture": 4, "database": 5},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Structure involves MVC and code organization. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "What are MongoDB schemas and models in Mongoose?",
+        "expectedSummary": "Schemas define the structure of documents in MongoDB. Models are constructors compiled from schemas that create and read documents.",
+        "keywords": ["schema", "model", "mongoose", "mongodb", "document", "structure", "validation"],
+        "routing": {"mongodb": 5, "validation": 5, "query": 6},
+        "defaultNext": 5,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Schemas define data structure in MongoDB. Let's move on."
+      },
+      {
+        "id": 5,
+        "question": "How do you handle errors in Express.js?",
+        "expectedSummary": "Errors can be handled using try-catch blocks, error-handling middleware, and sending appropriate HTTP status codes with error messages.",
+        "keywords": ["error", "handling", "middleware", "try", "catch", "status", "express"],
+        "routing": {"middleware": 6, "status": 6, "async": 6},
+        "defaultNext": 6,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. Error handling uses middleware and try-catch. Let's continue."
+      },
+      {
+        "id": 6,
+        "question": "What is CORS and why is it important in MERN?",
+        "expectedSummary": "CORS (Cross-Origin Resource Sharing) allows or restricts resources from different origins. It's needed when React frontend and Express backend run on different domains.",
+        "keywords": ["cors", "cross-origin", "security", "domain", "frontend", "backend", "middleware"],
+        "routing": {"security": 3, "middleware": 4, "express": 7},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. CORS manages cross-origin requests. Great work!"
+      }
+    ],
+    "advanced": [
+      {
+        "id": 1,
+        "question": "How do you implement real-time features in MERN using WebSockets?",
+        "expectedSummary": "Real-time features can be implemented using Socket.io, which enables bidirectional communication between client and server for live updates.",
+        "keywords": ["websocket", "socket.io", "real-time", "bidirectional", "live", "emit", "on"],
+        "routing": {"socket": 2, "realtime": 2, "chat": 2},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. WebSockets enable real-time communication. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "How do you optimize MongoDB queries for performance?",
+        "expectedSummary": "Optimize using indexing, limiting fields with projection, using aggregation pipelines, avoiding large queries, and implementing pagination.",
+        "keywords": ["mongodb", "optimization", "index", "query", "aggregation", "performance", "pagination"],
+        "routing": {"database": 3, "index": 3, "performance": 3},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Query optimization uses indexing and pagination. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "How do you implement caching in MERN stack?",
+        "expectedSummary": "Caching can be implemented using Redis for server-side caching, browser caching, and memoization in React for client-side optimization.",
+        "keywords": ["caching", "redis", "performance", "memory", "cache", "optimization", "server"],
+        "routing": {"redis": 4, "performance": 4, "optimization": 4},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Caching improves performance using Redis. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "How do you deploy a MERN application to production?",
+        "expectedSummary": "Deploy using platforms like Heroku, AWS, or DigitalOcean. Set up environment variables, use process managers like PM2, implement CI/CD, and configure databases.",
+        "keywords": ["deployment", "production", "heroku", "aws", "pm2", "cicd", "environment"],
+        "routing": {"devops": 5, "cicd": 5, "docker": 5},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Deployment involves cloud platforms and configuration. Excellent work!"
+      }
+    ]
+  },
+  "full stack": {
+    "beginner": [
+      {
+        "id": 1,
+        "question": "What is full stack development?",
+        "expectedSummary": "Full stack development involves working on both frontend and backend of applications, including databases, servers, and user interfaces.",
+        "keywords": ["full stack", "frontend", "backend", "database", "server", "development"],
+        "routing": {"frontend": 2, "backend": 3, "database": 4},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. Full stack means both frontend and backend development. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What is the difference between frontend and backend?",
+        "expectedSummary": "Frontend is the client-side that users see and interact with. Backend is the server-side that handles logic, databases, and API requests.",
+        "keywords": ["frontend", "backend", "client", "server", "ui", "api", "database"],
+        "routing": {"api": 3, "database": 4, "server": 3},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Frontend is UI, backend is server logic. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "What is an API and why is it important?",
+        "expectedSummary": "API (Application Programming Interface) allows different software to communicate. It's crucial for connecting frontend to backend services.",
+        "keywords": ["api", "interface", "communication", "rest", "endpoint", "request", "response"],
+        "routing": {"rest": 4, "http": 5, "backend": 4},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. APIs connect different parts of applications. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "What are databases and why do we need them?",
+        "expectedSummary": "Databases store and organize data persistently. They allow applications to save, retrieve, and manage information efficiently.",
+        "keywords": ["database", "data", "storage", "sql", "nosql", "mongodb", "mysql"],
+        "routing": {"sql": 5, "nosql": 5, "mongodb": 5},
+        "defaultNext": 5,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Databases store application data. Let's move on."
+      },
+      {
+        "id": 5,
+        "question": "What is the difference between SQL and NoSQL databases?",
+        "expectedSummary": "SQL databases use structured tables with relationships. NoSQL databases are flexible, storing data in documents, key-value pairs, or graphs.",
+        "keywords": ["sql", "nosql", "relational", "document", "mongodb", "mysql", "postgresql"],
+        "routing": {"mongodb": 6, "mysql": 6, "database": 4},
+        "defaultNext": 6,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. SQL is structured, NoSQL is flexible. Let's continue."
+      },
+      {
+        "id": 6,
+        "question": "What is HTTP and what are HTTP methods?",
+        "expectedSummary": "HTTP is a protocol for transferring data on the web. Common methods are GET (retrieve), POST (create), PUT (update), and DELETE (remove).",
+        "keywords": ["http", "protocol", "get", "post", "put", "delete", "request", "method"],
+        "routing": {"api": 3, "rest": 7, "request": 7},
+        "defaultNext": 7,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. HTTP methods perform different actions. Good effort!"
+      },
+      {
+        "id": 7,
+        "question": "What is version control and why is Git important?",
+        "expectedSummary": "Version control tracks code changes over time. Git is the most popular system for managing code versions, collaboration, and maintaining project history.",
+        "keywords": ["git", "version control", "repository", "commit", "branch", "github", "collaboration"],
+        "routing": {"github": 8, "branch": 8, "commit": 8},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Git tracks code changes and enables collaboration. Great job!"
+      }
+    ],
+    "intermediate": [
+      {
+        "id": 1,
+        "question": "How do you implement authentication and authorization in full stack applications?",
+        "expectedSummary": "Authentication verifies user identity using JWT or sessions. Authorization controls access to resources based on user roles and permissions.",
+        "keywords": ["authentication", "authorization", "jwt", "session", "token", "role", "permission"],
+        "routing": {"jwt": 2, "security": 3, "middleware": 2},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. Authentication verifies users, authorization controls access. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What is RESTful API design and its best practices?",
+        "expectedSummary": "RESTful API follows REST principles: use HTTP methods correctly, proper status codes, resource-based URLs, stateless communication, and consistent naming.",
+        "keywords": ["rest", "api", "design", "http", "status code", "endpoint", "resource", "stateless"],
+        "routing": {"api": 3, "http": 4, "status": 4},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. RESTful design follows specific principles. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "How do you handle state management in full stack applications?",
+        "expectedSummary": "Frontend state can be managed with Redux, Context API, or Zustand. Backend maintains state through databases and sessions. Use appropriate state for each layer.",
+        "keywords": ["state management", "redux", "context", "database", "session", "frontend", "backend"],
+        "routing": {"redux": 4, "database": 5, "frontend": 4},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. State management involves frontend and backend strategies. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "What are microservices and how do they differ from monolithic architecture?",
+        "expectedSummary": "Microservices break applications into independent services. Monolithic has all components in one codebase. Microservices offer better scalability but add complexity.",
+        "keywords": ["microservices", "monolithic", "architecture", "scalability", "services", "distributed"],
+        "routing": {"architecture": 5, "scalability": 5, "docker": 6},
+        "defaultNext": 5,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Microservices split apps into smaller services. Let's move on."
+      },
+      {
+        "id": 5,
+        "question": "How do you optimize database performance in full stack applications?",
+        "expectedSummary": "Optimize using indexing, query optimization, caching, connection pooling, denormalization when needed, and choosing appropriate data structures.",
+        "keywords": ["database", "optimization", "index", "caching", "query", "performance", "connection pool"],
+        "routing": {"caching": 6, "index": 6, "performance": 6},
+        "defaultNext": 6,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. Database optimization uses indexing and caching. Let's continue."
+      },
+      {
+        "id": 6,
+        "question": "What is Docker and why is it useful for full stack development?",
+        "expectedSummary": "Docker containerizes applications with their dependencies, ensuring consistent environments across development, testing, and production.",
+        "keywords": ["docker", "container", "containerization", "environment", "deployment", "image"],
+        "routing": {"deployment": 7, "devops": 7, "kubernetes": 7},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. Docker creates consistent application environments. Great work!"
+      }
+    ],
+    "advanced": [
+      {
+        "id": 1,
+        "question": "How do you design and implement a scalable full stack architecture?",
+        "expectedSummary": "Implement load balancing, horizontal scaling, caching layers, database replication, CDN for static assets, and microservices for independent scaling.",
+        "keywords": ["scalability", "architecture", "load balancing", "horizontal scaling", "caching", "microservices", "cdn"],
+        "routing": {"microservices": 2, "load": 2, "performance": 3},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. Scalable architecture involves multiple strategies. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "How do you implement CI/CD pipelines for full stack applications?",
+        "expectedSummary": "CI/CD automates testing, building, and deployment. Use tools like Jenkins, GitHub Actions, or GitLab CI. Implement automated tests, staging environments, and rollback strategies.",
+        "keywords": ["cicd", "continuous integration", "deployment", "automation", "testing", "pipeline", "jenkins"],
+        "routing": {"devops": 3, "testing": 4, "deployment": 3},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. CI/CD automates testing and deployment. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "How do you implement security best practices in full stack applications?",
+        "expectedSummary": "Implement HTTPS, input validation, SQL injection prevention, XSS protection, CSRF tokens, proper authentication, rate limiting, and security headers.",
+        "keywords": ["security", "https", "validation", "sql injection", "xss", "csrf", "authentication", "encryption"],
+        "routing": {"authentication": 4, "encryption": 4, "protection": 4},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Security involves multiple protection layers. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "How do you monitor and debug production issues in full stack applications?",
+        "expectedSummary": "Use logging frameworks, error tracking tools like Sentry, APM tools, monitoring dashboards, health checks, and implement proper error handling throughout the stack.",
+        "keywords": ["monitoring", "debugging", "logging", "error tracking", "sentry", "apm", "production"],
+        "routing": {"logging": 5, "performance": 5, "error": 5},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Monitoring uses logging and tracking tools. Excellent work!"
+      }
+    ]
+  },
+  "seo": {
+    "beginner": [
+      {
+        "id": 1,
+        "question": "What is SEO and why is it important?",
+        "expectedSummary": "SEO (Search Engine Optimization) improves website visibility in search engines. It's important for attracting organic traffic and increasing online presence.",
+        "keywords": ["seo", "search engine", "optimization", "visibility", "traffic", "ranking", "google"],
+        "routing": {"keywords": 2, "ranking": 3, "google": 3},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. SEO helps websites rank better in search engines. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What are keywords in SEO?",
+        "expectedSummary": "Keywords are words or phrases people search for. They help search engines understand content and match it with user queries.",
+        "keywords": ["keywords", "search", "query", "terms", "phrases", "content", "relevance"],
+        "routing": {"content": 3, "research": 4, "ranking": 3},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Keywords are search terms used to find content. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "What is on-page SEO?",
+        "expectedSummary": "On-page SEO involves optimizing individual web pages with quality content, meta tags, headings, images, and internal links to rank higher.",
+        "keywords": ["on-page", "content", "meta tags", "headings", "optimization", "title", "description"],
+        "routing": {"meta": 4, "content": 5, "title": 4},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. On-page SEO optimizes individual pages. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "What are meta tags and why are they important?",
+        "expectedSummary": "Meta tags provide information about web pages to search engines. Title tags and meta descriptions are crucial for search rankings and click-through rates.",
+        "keywords": ["meta tags", "title", "description", "metadata", "html", "search", "snippet"],
+        "routing": {"title": 5, "description": 5, "html": 5},
+        "defaultNext": 5,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Meta tags help search engines understand pages. Let's move on."
+      },
+      {
+        "id": 5,
+        "question": "What is off-page SEO?",
+        "expectedSummary": "Off-page SEO involves activities outside your website like backlinks, social media, and brand mentions that improve domain authority and rankings.",
+        "keywords": ["off-page", "backlinks", "link building", "authority", "social media", "domain"],
+        "routing": {"backlinks": 6, "authority": 6, "links": 6},
+        "defaultNext": 6,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. Off-page SEO happens outside your website. Let's continue."
+      },
+      {
+        "id": 6,
+        "question": "What are backlinks and why are they important?",
+        "expectedSummary": "Backlinks are links from other websites to yours. They signal trust and authority to search engines, improving rankings.",
+        "keywords": ["backlinks", "links", "authority", "trust", "domain", "ranking", "external"],
+        "routing": {"authority": 7, "linking": 7, "quality": 7},
+        "defaultNext": 7,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. Backlinks boost website authority and rankings. Good effort!"
+      },
+      {
+        "id": 7,
+        "question": "What is mobile-first indexing?",
+        "expectedSummary": "Mobile-first indexing means Google primarily uses the mobile version of content for indexing and ranking. Mobile optimization is essential.",
+        "keywords": ["mobile-first", "indexing", "mobile", "responsive", "google", "optimization"],
+        "routing": {"mobile": 8, "responsive": 8, "google": 3},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Mobile-first means Google prioritizes mobile versions. Great job!"
+      }
+    ],
+    "intermediate": [
+      {
+        "id": 1,
+        "question": "What is technical SEO and what does it include?",
+        "expectedSummary": "Technical SEO optimizes website infrastructure for crawling and indexing. Includes site speed, mobile-friendliness, XML sitemaps, structured data, and HTTPS.",
+        "keywords": ["technical seo", "crawling", "indexing", "site speed", "sitemap", "structured data", "https"],
+        "routing": {"sitemap": 2, "speed": 3, "structured": 4},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. Technical SEO focuses on website infrastructure. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What is an XML sitemap and why is it important?",
+        "expectedSummary": "XML sitemap is a file listing all website pages to help search engines discover and crawl content more efficiently.",
+        "keywords": ["xml sitemap", "sitemap", "crawling", "indexing", "search engine", "discovery"],
+        "routing": {"crawling": 3, "robots": 3, "indexing": 3},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. XML sitemaps help search engines find pages. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "How does page speed affect SEO?",
+        "expectedSummary": "Page speed is a ranking factor. Faster sites provide better user experience, reduce bounce rates, and rank higher in search results.",
+        "keywords": ["page speed", "loading", "performance", "ranking", "user experience", "core web vitals"],
+        "routing": {"performance": 4, "core": 4, "optimization": 4},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Fast pages rank better and improve user experience. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "What is structured data and schema markup?",
+        "expectedSummary": "Structured data uses schema markup to help search engines understand content better. It enables rich snippets and enhanced search results.",
+        "keywords": ["structured data", "schema", "markup", "rich snippets", "json-ld", "microdata"],
+        "routing": {"schema": 5, "rich": 5, "snippets": 5},
+        "defaultNext": 5,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Structured data improves search result display. Let's move on."
+      },
+      {
+        "id": 5,
+        "question": "What is link building and what are effective strategies?",
+        "expectedSummary": "Link building acquires backlinks from other sites. Strategies include guest posting, creating valuable content, partnerships, and broken link building.",
+        "keywords": ["link building", "backlinks", "guest posting", "content", "strategy", "outreach"],
+        "routing": {"backlinks": 6, "content": 6, "outreach": 6},
+        "defaultNext": 6,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. Link building creates quality backlinks. Let's continue."
+      },
+      {
+        "id": 6,
+        "question": "What is local SEO and how does it work?",
+        "expectedSummary": "Local SEO optimizes online presence for local searches. Includes Google Business Profile, local citations, reviews, and location-based content.",
+        "keywords": ["local seo", "google business", "local search", "citations", "reviews", "location"],
+        "routing": {"google": 7, "citations": 7, "reviews": 7},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. Local SEO targets geographic searches. Great work!"
+      }
+    ],
+    "advanced": [
+      {
+        "id": 1,
+        "question": "How do you perform a comprehensive SEO audit?",
+        "expectedSummary": "SEO audit analyzes technical issues, content quality, backlink profile, site architecture, mobile-friendliness, and competitive landscape. Use tools like Screaming Frog and Ahrefs.",
+        "keywords": ["seo audit", "analysis", "technical", "backlinks", "content", "tools", "screaming frog"],
+        "routing": {"technical": 2, "backlinks": 3, "analysis": 2},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. SEO audits evaluate all aspects of a site. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What are Core Web Vitals and how do they impact SEO?",
+        "expectedSummary": "Core Web Vitals measure user experience through LCP (loading), FID (interactivity), and CLS (visual stability). They're ranking factors affecting search positions.",
+        "keywords": ["core web vitals", "lcp", "fid", "cls", "performance", "user experience", "ranking"],
+        "routing": {"performance": 3, "user experience": 3, "metrics": 3},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Core Web Vitals measure page experience. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "How do you develop and execute an international SEO strategy?",
+        "expectedSummary": "International SEO uses hreflang tags, country-specific domains or subdomains, localized content, and targets different search engines and markets.",
+        "keywords": ["international seo", "hreflang", "localization", "multilingual", "global", "targeting"],
+        "routing": {"hreflang": 4, "localization": 4, "global": 4},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. International SEO targets multiple countries. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "How do you handle SEO for JavaScript-heavy websites and SPAs?",
+        "expectedSummary": "Use server-side rendering or dynamic rendering, implement proper URL structure, use prerendering, ensure crawlability, and test with Search Console.",
+        "keywords": ["javascript seo", "spa", "rendering", "crawling", "react", "angular", "nextjs"],
+        "routing": {"rendering": 5, "react": 5, "technical": 2},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. JavaScript SEO requires special techniques. Excellent work!"
+      }
+    ]
+  },
+  "cybersecurity": {
+    "beginner": [
+      {
+        "id": 1,
+        "question": "What is cybersecurity and why is it important?",
+        "expectedSummary": "Cybersecurity protects systems, networks, and data from digital attacks, unauthorized access, and damage. It's crucial for protecting sensitive information.",
+        "keywords": ["cybersecurity", "security", "protection", "attacks", "data", "network", "threats"],
+        "routing": {"threats": 2, "protection": 3, "attacks": 2},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. Cybersecurity protects digital systems and data. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What are common types of cyber threats?",
+        "expectedSummary": "Common threats include malware, phishing, ransomware, DDoS attacks, SQL injection, and social engineering. Each targets different vulnerabilities.",
+        "keywords": ["threats", "malware", "phishing", "ransomware", "ddos", "attacks", "vulnerabilities"],
+        "routing": {"malware": 3, "phishing": 4, "ransomware": 3},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Cyber threats include malware and phishing. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "What is encryption and why is it important?",
+        "expectedSummary": "Encryption converts data into coded format to prevent unauthorized access. It's essential for protecting sensitive information during transmission and storage.",
+        "keywords": ["encryption", "data", "security", "cipher", "decrypt", "protect", "confidentiality"],
+        "routing": {"https": 4, "ssl": 4, "security": 5},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Encryption secures data by encoding it. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "What is a firewall and how does it work?",
+        "expectedSummary": "A firewall monitors and controls network traffic based on security rules. It acts as a barrier between trusted and untrusted networks.",
+        "keywords": ["firewall", "network", "traffic", "security", "rules", "protection", "filtering"],
+        "routing": {"network": 5, "security": 5, "protection": 5},
+        "defaultNext": 5,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Firewalls filter network traffic for security. Let's move on."
+      },
+      {
+        "id": 5,
+        "question": "What is two-factor authentication (2FA)?",
+        "expectedSummary": "2FA adds an extra security layer by requiring two verification methods: something you know (password) and something you have (phone, token).",
+        "keywords": ["2fa", "two-factor", "authentication", "security", "verification", "token", "password"],
+        "routing": {"authentication": 6, "password": 6, "security": 3},
+        "defaultNext": 6,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. 2FA requires two forms of verification. Let's continue."
+      },
+      {
+        "id": 6,
+        "question": "What is phishing and how can you identify it?",
+        "expectedSummary": "Phishing uses fake emails or websites to steal sensitive information. Identify through suspicious URLs, poor grammar, urgent requests, and unexpected attachments.",
+        "keywords": ["phishing", "email", "scam", "fake", "social engineering", "suspicious", "fraud"],
+        "routing": {"social": 7, "email": 7, "security": 3},
+        "defaultNext": 7,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. Phishing tricks users into revealing information. Good effort!"
+      },
+      {
+        "id": 7,
+        "question": "What are strong password practices?",
+        "expectedSummary": "Strong passwords are long, use mixed characters (uppercase, lowercase, numbers, symbols), avoid common words, are unique for each account, and stored securely.",
+        "keywords": ["password", "strong", "security", "length", "characters", "unique", "practices"],
+        "routing": {"security": 3, "authentication": 5, "protection": 3},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Strong passwords use mixed characters and length. Great job!"
+      }
+    ],
+    "intermediate": [
+      {
+        "id": 1,
+        "question": "What is penetration testing and why is it performed?",
+        "expectedSummary": "Penetration testing simulates cyber attacks to identify vulnerabilities before malicious actors exploit them. It helps improve security posture.",
+        "keywords": ["penetration testing", "pen test", "vulnerabilities", "security", "testing", "exploitation"],
+        "routing": {"vulnerabilities": 2, "security": 3, "testing": 2},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. Penetration testing finds security weaknesses. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What is SQL injection and how can it be prevented?",
+        "expectedSummary": "SQL injection inserts malicious SQL code into queries. Prevent using parameterized queries, input validation, least privilege principle, and prepared statements.",
+        "keywords": ["sql injection", "attack", "database", "prevention", "validation", "security", "queries"],
+        "routing": {"database": 3, "validation": 4, "security": 3},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. SQL injection exploits database queries. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "What is Cross-Site Scripting (XSS) and how do you prevent it?",
+        "expectedSummary": "XSS injects malicious scripts into web pages. Prevent through input sanitization, output encoding, Content Security Policy, and validating user input.",
+        "keywords": ["xss", "cross-site scripting", "injection", "security", "validation", "sanitization"],
+        "routing": {"validation": 4, "security": 5, "web": 4},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. XSS injects malicious scripts into websites. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "What is the difference between symmetric and asymmetric encryption?",
+        "expectedSummary": "Symmetric uses one key for encryption and decryption (fast). Asymmetric uses public-private key pairs (more secure, slower). Both have different use cases.",
+        "keywords": ["encryption", "symmetric", "asymmetric", "key", "public", "private", "cryptography"],
+        "routing": {"encryption": 5, "keys": 5, "security": 3},
+        "defaultNext": 5,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Symmetric uses one key, asymmetric uses two. Let's move on."
+      },
+      {
+        "id": 5,
+        "question": "What is a VPN and how does it enhance security?",
+        "expectedSummary": "VPN creates an encrypted tunnel for internet traffic, hiding IP address and protecting data from interception. Essential for remote work security.",
+        "keywords": ["vpn", "virtual private network", "encryption", "tunnel", "privacy", "security"],
+        "routing": {"encryption": 4, "network": 6, "security": 3},
+        "defaultNext": 6,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. VPNs encrypt internet traffic for privacy. Let's continue."
+      },
+      {
+        "id": 6,
+        "question": "What is the CIA triad in cybersecurity?",
+        "expectedSummary": "CIA stands for Confidentiality (data privacy), Integrity (data accuracy), and Availability (data accessibility). Core principles of information security.",
+        "keywords": ["cia triad", "confidentiality", "integrity", "availability", "security", "principles"],
+        "routing": {"security": 3, "principles": 7, "protection": 3},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. CIA triad covers core security principles. Great work!"
+      }
+    ],
+    "advanced": [
+      {
+        "id": 1,
+        "question": "How do you implement a Zero Trust security architecture?",
+        "expectedSummary": "Zero Trust assumes no implicit trust. Implement continuous verification, least privilege access, micro-segmentation, multi-factor authentication, and monitoring.",
+        "keywords": ["zero trust", "architecture", "verification", "least privilege", "security", "access control"],
+        "routing": {"architecture": 2, "access": 2, "security": 3},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. Zero Trust verifies all access continuously. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What is threat intelligence and how is it used?",
+        "expectedSummary": "Threat intelligence collects and analyzes information about cyber threats. Used for proactive defense, understanding attacker tactics, and improving security posture.",
+        "keywords": ["threat intelligence", "analysis", "threats", "defense", "security", "tactics"],
+        "routing": {"analysis": 3, "threats": 3, "defense": 4},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Threat intelligence helps predict attacks. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "How do you respond to and recover from a security breach?",
+        "expectedSummary": "Incident response includes preparation, detection, containment, eradication, recovery, and lessons learned. Have incident response plan, backup strategy, and forensics.",
+        "keywords": ["incident response", "breach", "recovery", "forensics", "containment", "security"],
+        "routing": {"forensics": 4, "recovery": 4, "incident": 4},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Incident response follows structured steps. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "What is blockchain security and what are its applications?",
+        "expectedSummary": "Blockchain uses cryptography and distributed ledger for tamper-proof records. Applications include cryptocurrency, supply chain, smart contracts, and identity management.",
+        "keywords": ["blockchain", "security", "cryptography", "distributed ledger", "cryptocurrency", "smart contracts"],
+        "routing": {"cryptography": 5, "distributed": 5, "security": 1},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Blockchain provides tamper-proof security. Excellent work!"
+      }
+    ]
+  },
+  "machine learning": {
+    "beginner": [
+      {
+        "id": 1,
+        "question": "What is machine learning and how is it different from traditional programming?",
+        "expectedSummary": "Machine learning trains computers to learn from data without explicit programming. Traditional programming uses fixed rules; ML finds patterns automatically.",
+        "keywords": ["machine learning", "ml", "data", "learning", "patterns", "algorithms", "training"],
+        "routing": {"supervised": 2, "data": 3, "algorithms": 4},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. Machine learning learns from data automatically. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What is the difference between supervised and unsupervised learning?",
+        "expectedSummary": "Supervised learning uses labeled data to train models. Unsupervised learning finds patterns in unlabeled data without predefined outcomes.",
+        "keywords": ["supervised", "unsupervised", "learning", "labeled", "unlabeled", "data", "training"],
+        "routing": {"supervised": 3, "unsupervised": 4, "data": 3},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Supervised uses labels, unsupervised finds patterns. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "What is a neural network?",
+        "expectedSummary": "Neural networks are computing systems inspired by biological brains. They consist of interconnected nodes (neurons) organized in layers that process information.",
+        "keywords": ["neural network", "neurons", "layers", "deep learning", "nodes", "artificial", "connections"],
+        "routing": {"deep": 4, "layers": 5, "learning": 2},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Neural networks mimic brain structure. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "What is training data and why is it important?",
+        "expectedSummary": "Training data is information used to teach ML models. Quality and quantity of training data directly affects model accuracy and performance.",
+        "keywords": ["training data", "dataset", "data", "learning", "model", "quality", "examples"],
+        "routing": {"data": 5, "model": 5, "quality": 5},
+        "defaultNext": 5,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Training data teaches ML models. Let's move on."
+      },
+      {
+        "id": 5,
+        "question": "What is overfitting in machine learning?",
+        "expectedSummary": "Overfitting occurs when a model learns training data too well, including noise, and performs poorly on new data. Balance is needed between fitting and generalizing.",
+        "keywords": ["overfitting", "generalization", "training", "validation", "model", "performance", "bias"],
+        "routing": {"validation": 6, "testing": 6, "generalization": 6},
+        "defaultNext": 6,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. Overfitting means model memorizes rather than learns. Let's continue."
+      },
+      {
+        "id": 6,
+        "question": "What are common machine learning algorithms?",
+        "expectedSummary": "Common algorithms include Linear Regression, Decision Trees, Random Forest, SVM, K-Nearest Neighbors, and Neural Networks. Each suits different problems.",
+        "keywords": ["algorithms", "regression", "classification", "decision tree", "svm", "knn", "random forest"],
+        "routing": {"regression": 7, "classification": 7, "algorithms": 4},
+        "defaultNext": 7,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. Many ML algorithms solve different problems. Good effort!"
+      },
+      {
+        "id": 7,
+        "question": "What is the difference between classification and regression?",
+        "expectedSummary": "Classification predicts categories (discrete outputs). Regression predicts continuous numerical values. Both are supervised learning tasks.",
+        "keywords": ["classification", "regression", "prediction", "supervised", "categories", "continuous", "discrete"],
+        "routing": {"supervised": 2, "prediction": 5, "algorithms": 6},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Classification categorizes, regression predicts numbers. Great job!"
+      }
+    ],
+    "intermediate": [
+      {
+        "id": 1,
+        "question": "What are hyperparameters and how do you tune them?",
+        "expectedSummary": "Hyperparameters are configuration settings for ML algorithms. Tune using grid search, random search, or Bayesian optimization to find optimal values.",
+        "keywords": ["hyperparameters", "tuning", "optimization", "grid search", "parameters", "configuration"],
+        "routing": {"optimization": 2, "tuning": 2, "parameters": 3},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. Hyperparameters control algorithm behavior. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What is feature engineering and why is it important?",
+        "expectedSummary": "Feature engineering creates new features from raw data to improve model performance. Includes scaling, encoding, transformation, and selection.",
+        "keywords": ["feature engineering", "features", "data", "preprocessing", "transformation", "scaling", "encoding"],
+        "routing": {"preprocessing": 3, "features": 4, "data": 3},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. Feature engineering prepares data for models. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "What is cross-validation and why is it used?",
+        "expectedSummary": "Cross-validation splits data into multiple folds for training and testing, providing better model evaluation and reducing overfitting risk.",
+        "keywords": ["cross-validation", "k-fold", "validation", "testing", "evaluation", "model", "folds"],
+        "routing": {"validation": 4, "evaluation": 4, "testing": 5},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Cross-validation tests model reliability. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "What is gradient descent and how does it work?",
+        "expectedSummary": "Gradient descent is an optimization algorithm that minimizes loss by iteratively adjusting parameters in the direction of steepest descent.",
+        "keywords": ["gradient descent", "optimization", "loss", "parameters", "learning rate", "convergence"],
+        "routing": {"optimization": 5, "learning": 5, "neural": 6},
+        "defaultNext": 5,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. Gradient descent optimizes model parameters. Let's move on."
+      },
+      {
+        "id": 5,
+        "question": "What is regularization and why is it used?",
+        "expectedSummary": "Regularization prevents overfitting by adding penalty terms to the loss function. Common techniques are L1 (Lasso) and L2 (Ridge) regularization.",
+        "keywords": ["regularization", "overfitting", "l1", "l2", "lasso", "ridge", "penalty"],
+        "routing": {"overfitting": 6, "optimization": 4, "model": 6},
+        "defaultNext": 6,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No problem. Regularization reduces overfitting. Let's continue."
+      },
+      {
+        "id": 6,
+        "question": "What is ensemble learning and what are common methods?",
+        "expectedSummary": "Ensemble learning combines multiple models for better predictions. Common methods include bagging (Random Forest), boosting (XGBoost), and stacking.",
+        "keywords": ["ensemble", "bagging", "boosting", "random forest", "xgboost", "stacking", "models"],
+        "routing": {"boosting": 7, "random": 7, "models": 4},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's alright. Ensemble methods combine multiple models. Great work!"
+      }
+    ],
+    "advanced": [
+      {
+        "id": 1,
+        "question": "How do Convolutional Neural Networks (CNNs) work?",
+        "expectedSummary": "CNNs use convolutional layers to automatically learn spatial hierarchies of features. Specialized for image processing with convolution, pooling, and fully connected layers.",
+        "keywords": ["cnn", "convolutional", "neural network", "image", "convolution", "pooling", "filters"],
+        "routing": {"image": 2, "deep": 3, "neural": 2},
+        "defaultNext": 2,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's okay. CNNs process images through layered filters. Let's continue."
+      },
+      {
+        "id": 2,
+        "question": "What are Recurrent Neural Networks (RNNs) and when are they used?",
+        "expectedSummary": "RNNs process sequential data by maintaining hidden states. Used for time series, text, and speech. LSTMs and GRUs solve vanishing gradient problem.",
+        "keywords": ["rnn", "recurrent", "sequential", "lstm", "gru", "time series", "text"],
+        "routing": {"lstm": 3, "sequential": 3, "neural": 1},
+        "defaultNext": 3,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "No worries. RNNs handle sequential and time-based data. Let's move on."
+      },
+      {
+        "id": 3,
+        "question": "What is transfer learning and why is it powerful?",
+        "expectedSummary": "Transfer learning uses pre-trained models on new tasks, reducing training time and data requirements. Particularly effective for computer vision and NLP.",
+        "keywords": ["transfer learning", "pre-trained", "fine-tuning", "model", "training", "efficiency"],
+        "routing": {"pretrained": 4, "training": 4, "fine": 4},
+        "defaultNext": 4,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "That's fine. Transfer learning reuses existing models. Let's continue."
+      },
+      {
+        "id": 4,
+        "question": "How do you deploy machine learning models to production?",
+        "expectedSummary": "Deploy using REST APIs, containerization (Docker), model serving frameworks (TensorFlow Serving, MLflow), monitoring, versioning, and CI/CD pipelines.",
+        "keywords": ["deployment", "production", "api", "docker", "serving", "mlops", "monitoring"],
+        "routing": {"mlops": 5, "api": 5, "monitoring": 5},
+        "defaultNext": null,
+        "lowKnowledgePhrases": ["i don't know", "sorry", "not sure", "no idea"],
+        "systemReplyOnLowKnowledge": "It's okay. ML deployment requires infrastructure and monitoring. Excellent work!"
       }
     ]
   }
