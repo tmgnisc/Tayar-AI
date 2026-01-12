@@ -39,20 +39,24 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
     
     console.log(`[Vapi] Generating interview prompt for ${config.role} (${config.difficulty})...`);
     
-    // Generate interview prompt using Gemini service with domain information
-    const interviewPrompt = generateInterviewPrompt({
-      role: config.role,
-      difficulty: config.difficulty as 'beginner' | 'intermediate' | 'advanced' | 'expert',
-      language: 'english',
-      userName: config.userName,
-      domainName: config.domainName,
-      domainDescription: config.domainDescription,
-    });
+    // Create system prompt for Maria interviewer
+    const domain = config.domainName || config.role;
+    const systemPrompt = `You are Maria, a professional technical interviewer conducting a ${config.difficulty} level interview for ${domain}. 
+  
+Ask clear, domain-specific questions about ${domain}. Be professional, encouraging, and conversational. 
+Ask exactly 4 questions during the interview, then conclude with a thank you message.
+
+Remember:
+- Your name is Maria
+- Stay focused on ${domain} topics
+- Ask one question at a time
+- Provide brief feedback after each answer
+- Keep the conversation natural and professional`;
     
-    console.log(`[Vapi] Prompt generated (length: ${interviewPrompt.length} characters)`);
+    console.log(`[Vapi] Prompt generated (length: ${systemPrompt.length} characters)`);
     console.log(`[Vapi] Creating assistant: ${assistantName}...`);
     
-    // Create assistant with Gemini integration
+    // Create assistant configuration
     const assistantConfig = {
       name: assistantName,
       model: {
@@ -61,7 +65,7 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
         messages: [
           {
             role: 'system',
-            content: interviewPrompt,
+            content: systemPrompt,
           },
         ],
       },
@@ -69,11 +73,8 @@ export async function createVapiAssistant(config: VapiCallConfig): Promise<strin
         provider: '11labs',
         voiceId: '21m00Tcm4TlvDq8ikWAM', // Rachel voice - professional and clear
       },
-      // First message - This will be automatically spoken by Vapi when the call starts
-      // Vapi will speak this greeting immediately upon call connection
-      // Maria introduces herself and asks the first question
-      const domain = config.domainName || config.role;
-      firstMessage: `Hello${config.userName ? ` ${config.userName}` : ''}! I'm Maria, and I'll be conducting your technical interview today for the ${domain} position at ${config.difficulty} level. I'll be asking you 4 questions about ${domain}. Let's begin! My first question for you is: Can you explain what ${domain} is and why it's important in software development?`,
+      // First message - Maria introduces herself
+      firstMessage: `Hello${config.userName ? ` ${config.userName}` : ''}! I'm Maria, and I'll be conducting your technical interview today for the ${domain} position at ${config.difficulty} level. I'll be asking you 4 questions about ${domain}. Let's begin!`,
       
       // Ensure the assistant speaks first
       firstMessageMode: 'assistant-speaks-first',

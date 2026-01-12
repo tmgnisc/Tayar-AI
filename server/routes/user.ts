@@ -492,12 +492,12 @@ router.post('/interviews/:id/start-conversation', async (req: AuthRequest, res) 
     }
 
     // Maria's greeting with the first question
-    const greeting = `Hello ${userName || 'there'}! I'm Maria, and I'll be conducting your interview today for the ${domainName || interview.role} position at ${interview.difficulty} level. I'll be asking you 4 questions. Let's begin! ${question.text}`;
+    const greeting = `Hello ${userName || 'there'}! I'm Maria, and I'll be conducting your interview today for the ${domainName || interview.role} position at ${interview.difficulty} level. I'll be asking you 4 questions. Let's begin! ${question.question}`;
 
     res.json({
       message: greeting,
       questionId: question.id,
-      question: question.text,
+      question: question.question,
       interviewComplete: false,
     });
   } catch (error: any) {
@@ -585,7 +585,7 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
 
       // Use JSON-based interview with Maria as interviewer
       console.log('[Continue Conversation] Using JSON questions with Maria interviewer...');
-      const { checkProfanity, checkOffTopic, getNextQuestionByKeywords } = await import('../services/interviewService');
+      const { checkProfanity, checkOffTopic, getNextQuestionByKeywords } = await import('../services/interviewService.js');
       
       // Get the last user message (their answer)
       const lastUserMessage = conversationHistory
@@ -603,8 +603,9 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
       const questionsAsked = conversationHistory.filter(msg => msg.role === 'assistant').length;
       const MAX_QUESTIONS = 4; // Maria asks exactly 4 questions
 
-      // Get the last question asked
-      const lastQuestion = conversationHistory
+      // Get the last question asked (we need the full question object, not just text)
+      // We'll retrieve it from the interview service
+      const lastQuestionText = conversationHistory
         .filter(msg => msg.role === 'assistant')
         .pop()?.text || '';
 
@@ -614,9 +615,9 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         console.log(`[Continue Conversation] ⚠️ Profanity detected`);
         
         return res.json({
-          message: "I understand you may be frustrated, but let's keep our conversation professional. Please focus on answering the technical questions. " + lastQuestion,
+          message: "I understand you may be frustrated, but let's keep our conversation professional. Please focus on answering the technical questions. " + lastQuestionText,
           questionId: questionsAsked,
-          question: lastQuestion,
+          question: lastQuestionText,
           evaluation: {
             score: 0,
             feedback: 'Please maintain a professional tone during the interview.',
@@ -625,15 +626,30 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         });
       }
 
-      // Check if answer is off-topic
-      const isOffTopic = checkOffTopic(lastUserMessage, lastQuestion);
+      // Get the actual question object with keywords for off-topic check
+      // We'll retrieve it by getting the shuffled questions and finding the one at current position
+      const { getShuffledQuestions } = await import('../services/interviewService.js');
+      const shuffledQuestions = getShuffledQuestions(
+        interview.role,
+        interview.difficulty as 'beginner' | 'intermediate' | 'advanced',
+        interview.id,
+        4
+      );
+      
+      // Current question is at index questionsAsked - 1 (since questionsAsked is 1-indexed)
+      const currentQuestion = shuffledQuestions[questionsAsked - 1];
+      
+      // Check if answer is off-topic using the question object with keywords
+      const isOffTopic = currentQuestion 
+        ? checkOffTopic(lastUserMessage, currentQuestion)
+        : checkOffTopic(lastUserMessage, lastQuestionText);
       if (isOffTopic) {
         console.log(`[Continue Conversation] ⚠️ Off-topic response detected`);
         
         return res.json({
-          message: "Don't go off topic. Please answer the question I asked: " + lastQuestion,
+          message: "Don't go off topic. Please answer the question I asked: " + lastQuestionText,
           questionId: questionsAsked,
-          question: lastQuestion,
+          question: lastQuestionText,
           evaluation: {
             score: 0,
             feedback: 'Please stay on topic and answer the question.',
@@ -692,12 +708,12 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         "Okay, got it.",
       ];
       const randomAck = acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
-      const mariaResponse = `${randomAck} ${nextQuestion.text}`;
+      const mariaResponse = `${randomAck} ${nextQuestion.question}`;
 
       res.json({
         message: mariaResponse,
         questionId: nextQuestion.id,
-        question: nextQuestion.text,
+        question: nextQuestion.question,
         interviewComplete: false,
       });
     } finally {
