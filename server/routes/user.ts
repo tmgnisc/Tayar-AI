@@ -615,12 +615,17 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
 
       const interview = interviews[0];
 
-      // Get user name
+      // Get user info including subscription status
       const [users]: any = await connection.query(
-        'SELECT name FROM users WHERE id = ?',
+        'SELECT name, subscription_type, subscription_status FROM users WHERE id = ?',
         [userId]
       );
       const userName = users[0]?.name || null;
+      const subscriptionType = users[0]?.subscription_type || 'free';
+      const subscriptionStatus = users[0]?.subscription_status || 'active';
+      const isFreeUser = !subscriptionType || 
+                         subscriptionType === 'free' || 
+                         subscriptionStatus !== 'active';
 
       // Get domain information by name (interview.role contains the domain name)
       let domainName = interview.role;
@@ -667,13 +672,13 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
       // The current answer being processed is included in the count
       const userAnswers = conversationHistory.filter(msg => msg.role === 'user').length;
       const questionsAnswered = userAnswers; // This includes the current answer being processed
-      const MAX_QUESTIONS = 5;
+      const MAX_QUESTIONS = 4; // Free users get 4 questions per interview
 
       // Get questions list first (needed for report generation)
       const questions = getQuestions(domainName || interview.role, interview.difficulty);
 
       // Check if we've reached the maximum number of questions
-      // If we've answered 5 questions, we're done (the 5th answer is being processed now)
+      // If we've answered MAX_QUESTIONS questions, we're done (the last answer is being processed now)
       if (questionsAnswered >= MAX_QUESTIONS) {
         // Generate and return report
         const { generateInterviewReport } = await import('../services/reportService');
@@ -706,8 +711,34 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         
         const report = await generateInterviewReport(interviewId, userId, answers);
         
+        // Calculate interview duration (from started_at to now)
+        const completedAt = new Date();
+        const startedAt = new Date(interview.started_at || interview.created_at);
+        const durationMinutes = Math.round((completedAt.getTime() - startedAt.getTime()) / 60000);
+        
+        // Update interview record with completion status, duration, and score
+        await connection.query(
+          `UPDATE interviews 
+           SET status = 'completed',
+               completed_at = NOW(),
+               duration_minutes = ?,
+               overall_score = ?
+           WHERE id = ?`,
+          [durationMinutes, report.averageScore, interviewId]
+        );
+        
+        console.log(`✅ Interview ${interviewId} completed. Duration: ${durationMinutes} minutes, Score: ${report.averageScore}`);
+        
+        // Different completion message for free vs pro users
+        let completionMessage = "Thank you for your time today! Great job on the interview practice!";
+        if (isFreeUser) {
+          completionMessage = "Thank you for your time today! You've completed today's free plan interview. Come back tomorrow or upgrade to Pro for unlimited interviews!";
+        } else {
+          completionMessage = "Thank you for your time today! You've completed the interview. Great job on the interview practice!";
+        }
+        
         return res.json({
-          message: "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!",
+          message: completionMessage,
           questionId: null,
           evaluation: {
             score: report.averageScore,
@@ -847,8 +878,34 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
           
           const report = await generateInterviewReport(interviewId, userId, answers);
           
+          // Calculate interview duration (from started_at to now)
+          const completedAt = new Date();
+          const startedAt = new Date(interview.started_at || interview.created_at);
+          const durationMinutes = Math.round((completedAt.getTime() - startedAt.getTime()) / 60000);
+          
+          // Update interview record with completion status, duration, and score
+          await connection.query(
+            `UPDATE interviews 
+             SET status = 'completed',
+                 completed_at = NOW(),
+                 duration_minutes = ?,
+                 overall_score = ?
+             WHERE id = ?`,
+            [durationMinutes, report.averageScore, interviewId]
+          );
+          
+          console.log(`✅ Interview ${interviewId} completed (low knowledge route). Duration: ${durationMinutes} minutes, Score: ${report.averageScore}`);
+          
+          // Different completion message for free vs pro users
+          let completionSuffix = "";
+          if (isFreeUser) {
+            completionSuffix = " You've completed today's free plan interview. Come back tomorrow or upgrade to Pro for unlimited interviews!";
+          } else {
+            completionSuffix = " You've completed the interview. Great job!";
+          }
+          
           return res.json({
-            message: `${lowKnowledgeMessage} Thank you for your time today! You've completed all questions.`,
+            message: `${lowKnowledgeMessage} Thank you for your time today!${completionSuffix}`,
             questionId: null,
             evaluation: {
               score: 0,
@@ -1017,11 +1074,37 @@ router.post('/interviews/:id/continue-conversation', async (req: AuthRequest, re
         
         const report = await generateInterviewReport(interviewId, userId, answers);
         
-        let completionMessage = "Thank you for your time today! You've completed all 5 questions. Great job on the interview practice!";
+        // Calculate interview duration (from started_at to now)
+        const completedAt = new Date();
+        const startedAt = new Date(interview.started_at || interview.created_at);
+        const durationMinutes = Math.round((completedAt.getTime() - startedAt.getTime()) / 60000);
+        
+        // Update interview record with completion status, duration, and score
+        await connection.query(
+          `UPDATE interviews 
+           SET status = 'completed',
+               completed_at = NOW(),
+               duration_minutes = ?,
+               overall_score = ?
+           WHERE id = ?`,
+          [durationMinutes, report.averageScore, interviewId]
+        );
+        
+        console.log(`✅ Interview ${interviewId} completed. Duration: ${durationMinutes} minutes, Score: ${report.averageScore}`);
+        
+        // Build completion message based on user type and low knowledge
+        let completionMessage = "";
         
         // If low knowledge was detected and there's a reply, use it
         if (nextIsLowKnowledge && lowKnowledgeReply) {
-          completionMessage = lowKnowledgeReply;
+          completionMessage = lowKnowledgeReply + " ";
+        }
+        
+        // Add appropriate completion message based on subscription
+        if (isFreeUser) {
+          completionMessage += "Thank you for your time today! You've completed today's free plan interview. Come back tomorrow or upgrade to Pro for unlimited interviews!";
+        } else {
+          completionMessage += "Thank you for your time today! You've completed the interview. Great job on the interview practice!";
         }
 
         res.json({

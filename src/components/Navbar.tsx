@@ -56,11 +56,19 @@ export const Navbar = () => {
             <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               Pricing
             </Link>
+            <a 
+              href="https://job-khoj.vercel.app/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
+              Job Listing
+            </a>
             <Link to="/contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               Contact
             </Link>
           {isAuthenticated && (
-            <Link to={user.role === 'admin' ? '/admin' : '/dashboard'} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link to={user.role === 'admin' ? '/admin' : '/dashboard'} className="text-sm font-medium text-primary hover:underline transition-colors">
               {user.role === 'admin' ? 'Admin' : 'Dashboard'}
             </Link>
           )}
