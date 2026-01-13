@@ -142,15 +142,24 @@ async function executeJava(code: string): Promise<ExecutionResult> {
     await writeFile(tempFilePath, code);
 
     // Compile Java code
-    const { stderr: compileStderr } = await execAsync(`javac "${tempFilePath}"`, {
-      timeout: TIMEOUT,
-      cwd: tempDir,
-    });
-
-    if (compileStderr) {
+    try {
+      await execAsync(`javac "${tempFilePath}"`, {
+        timeout: TIMEOUT,
+        cwd: tempDir,
+      });
+    } catch (compileError: any) {
+      // Compilation failed - return the error
+      const compileOutput = (compileError.stdout || '') + (compileError.stderr || '');
+      // Filter out Java options messages
+      const filteredError = compileOutput
+        .split('\n')
+        .filter(line => !line.includes('Picked up _JAVA_OPTIONS'))
+        .join('\n')
+        .trim();
+      
       return {
         status: 'error',
-        error: `Compilation Error:\n${compileStderr.trim().slice(0, MAX_OUTPUT_LENGTH)}`,
+        error: `Compilation Error:\n${filteredError.slice(0, MAX_OUTPUT_LENGTH)}`,
         executionTime: (Date.now() - startTime) / 1000,
       };
     }
@@ -162,11 +171,17 @@ async function executeJava(code: string): Promise<ExecutionResult> {
     });
 
     const executionTime = (Date.now() - startTime) / 1000;
-    const output = (stdout + stderr).trim().slice(0, MAX_OUTPUT_LENGTH);
+    
+    // Filter out Java options messages from output
+    const combinedOutput = (stdout + stderr)
+      .split('\n')
+      .filter(line => !line.includes('Picked up _JAVA_OPTIONS'))
+      .join('\n')
+      .trim();
 
     return {
       status: 'success',
-      output: output || '(No output)',
+      output: combinedOutput || '(No output)',
       executionTime,
     };
   } catch (error: any) {

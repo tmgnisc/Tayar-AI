@@ -10,6 +10,7 @@ import webhookRoutes from './routes/webhooks.js';
 import paymentRoutes from './routes/payment.js';
 import didRoutes from './routes/did.js';
 import codeRoutes from './routes/code.js';
+import cvRoutes from './routes/cv.js';
 import { initializeDatabase } from './config/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -44,6 +45,7 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/did', didRoutes);
 app.use('/api/code', codeRoutes);
+app.use('/api/cv', cvRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

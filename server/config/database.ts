@@ -256,6 +256,28 @@ async function createTables() {
         INDEX idx_public (is_public, created_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    // CV/Resume table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS user_cvs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        template VARCHAR(50) DEFAULT 'modern',
+        personal_info JSON NOT NULL,
+        summary TEXT NULL,
+        experience JSON NULL,
+        education JSON NULL,
+        skills JSON NULL,
+        projects JSON NULL,
+        certifications JSON NULL,
+        languages JSON NULL,
+        is_public BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_cv (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
   } finally {
     connection.release();
   }

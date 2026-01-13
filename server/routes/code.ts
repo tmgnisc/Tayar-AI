@@ -148,5 +148,54 @@ router.get('/stats', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
+// Get leaderboard
+router.get('/leaderboard', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 10;
+    const connection = await pool.getConnection();
+
+    try {
+      const [leaderboard]: any = await connection.query(
+        `SELECT 
+          cs.user_id,
+          u.name,
+          u.email,
+          u.avatar_url,
+          cs.total_submissions,
+          cs.accepted_submissions,
+          cs.easy_solved,
+          cs.medium_solved,
+          cs.hard_solved,
+          cs.favorite_language,
+          cs.streak_days,
+          cs.last_submission_date,
+          (cs.easy_solved + cs.medium_solved * 2 + cs.hard_solved * 3) as total_score
+         FROM coding_stats cs
+         INNER JOIN users u ON cs.user_id = u.id
+         WHERE cs.total_submissions > 0
+         ORDER BY total_score DESC, cs.accepted_submissions DESC, cs.total_submissions DESC
+         LIMIT ?`,
+        [limit]
+      );
+
+      // Add rank
+      const rankedLeaderboard = leaderboard.map((user: any, index: number) => ({
+        ...user,
+        rank: index + 1,
+      }));
+
+      res.json({ leaderboard: rankedLeaderboard });
+    } finally {
+      connection.release();
+    }
+  } catch (error: any) {
+    console.error('Get leaderboard error:', error);
+    res.status(500).json({
+      message: 'Failed to get leaderboard',
+      error: error.message,
+    });
+  }
+});
+
 export default router;
 

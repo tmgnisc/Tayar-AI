@@ -22,6 +22,7 @@ import InterviewResult from "./pages/InterviewResult";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancel from "./pages/PaymentCancel";
 import CodePractice from "./pages/CodePractice";
+import CVBuilder from "./pages/CVBuilder";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ const App = () => (
           <Route path="/interview/session" element={<ProtectedRoute><InterviewSession /></ProtectedRoute>} />
           <Route path="/interview/result" element={<ProtectedRoute><InterviewResult /></ProtectedRoute>} />
           <Route path="/code-practice" element={<ProtectedRoute><CodePractice /></ProtectedRoute>} />
+          <Route path="/cv-builder" element={<ProtectedRoute><CVBuilder /></ProtectedRoute>} />
           <Route path="/payment/success" element={<PaymentSuccess />} />
           <Route path="/payment/cancel" element={<PaymentCancel />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

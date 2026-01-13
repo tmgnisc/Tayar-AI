@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { CodeEditor } from '@/components/CodeEditor';
+import { Leaderboard } from '@/components/Leaderboard';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -281,6 +282,371 @@ fizz_buzz(15)`,
   },
   {
     id: 5,
+    title: 'Print Numbers 1 to 10',
+    difficulty: 'easy',
+    category: 'loops',
+    description: `Write a program that prints numbers from 1 to 10, each on a new line.
+
+This is a basic loop exercise to practice iteration.
+
+Example Output:
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10`,
+    starterCode: {
+      javascript: `// Write your code here to print 1 to 10
+for (let i = 1; i <= 10; i++) {
+  // Your code here
+}`,
+      python: `# Write your code here to print 1 to 10
+for i in range(1, 11):
+    # Your code here
+    pass`,
+      java: `public class Solution {
+    public static void main(String[] args) {
+        // Write your code here to print 1 to 10
+        for (int i = 1; i <= 10; i++) {
+            // Your code here
+        }
+    }
+}`,
+    },
+  },
+  {
+    id: 6,
+    title: 'Sum of Numbers',
+    difficulty: 'easy',
+    category: 'loops',
+    description: `Calculate the sum of numbers from 1 to n.
+
+Example:
+Input: n = 10
+Output: 55
+Explanation: 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 = 55`,
+    starterCode: {
+      javascript: `function sumOfNumbers(n) {
+  // Write your code here
+  let sum = 0;
+  // Use a loop
+  return sum;
+}
+
+console.log(sumOfNumbers(10)); // Expected: 55
+console.log(sumOfNumbers(5)); // Expected: 15`,
+      python: `def sum_of_numbers(n):
+    # Write your code here
+    sum = 0
+    # Use a loop
+    return sum
+
+print(sum_of_numbers(10))  # Expected: 55
+print(sum_of_numbers(5))  # Expected: 15`,
+      java: `public class Solution {
+    public static int sumOfNumbers(int n) {
+        // Write your code here
+        int sum = 0;
+        // Use a loop
+        return sum;
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(sumOfNumbers(10)); // Expected: 55
+        System.out.println(sumOfNumbers(5)); // Expected: 15
+    }
+}`,
+    },
+  },
+  {
+    id: 7,
+    title: 'Even or Odd',
+    difficulty: 'easy',
+    category: 'basics',
+    description: `Write a function that checks if a number is even or odd.
+
+Return "Even" if the number is even, "Odd" if it's odd.
+
+Example:
+Input: 4
+Output: "Even"
+
+Input: 7
+Output: "Odd"`,
+    starterCode: {
+      javascript: `function evenOrOdd(num) {
+  // Write your code here
+}
+
+console.log(evenOrOdd(4)); // Expected: "Even"
+console.log(evenOrOdd(7)); // Expected: "Odd"
+console.log(evenOrOdd(0)); // Expected: "Even"`,
+      python: `def even_or_odd(num):
+    # Write your code here
+    pass
+
+print(even_or_odd(4))  # Expected: "Even"
+print(even_or_odd(7))  # Expected: "Odd"
+print(even_or_odd(0))  # Expected: "Even"`,
+      java: `public class Solution {
+    public static String evenOrOdd(int num) {
+        // Write your code here
+        return "";
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(evenOrOdd(4)); // Expected: "Even"
+        System.out.println(evenOrOdd(7)); // Expected: "Odd"
+        System.out.println(evenOrOdd(0)); // Expected: "Even"
+    }
+}`,
+    },
+  },
+  {
+    id: 8,
+    title: 'Find Maximum',
+    difficulty: 'easy',
+    category: 'arrays',
+    description: `Find the maximum number in an array.
+
+Example:
+Input: [3, 7, 2, 9, 1]
+Output: 9
+
+Input: [-5, -2, -10, -1]
+Output: -1`,
+    starterCode: {
+      javascript: `function findMax(arr) {
+  // Write your code here
+}
+
+console.log(findMax([3, 7, 2, 9, 1])); // Expected: 9
+console.log(findMax([-5, -2, -10, -1])); // Expected: -1`,
+      python: `def find_max(arr):
+    # Write your code here
+    pass
+
+print(find_max([3, 7, 2, 9, 1]))  # Expected: 9
+print(find_max([-5, -2, -10, -1]))  # Expected: -1`,
+      java: `public class Solution {
+    public static int findMax(int[] arr) {
+        // Write your code here
+        return 0;
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(findMax(new int[]{3, 7, 2, 9, 1})); // Expected: 9
+        System.out.println(findMax(new int[]{-5, -2, -10, -1})); // Expected: -1
+    }
+}`,
+    },
+  },
+  {
+    id: 9,
+    title: 'Count Vowels',
+    difficulty: 'easy',
+    category: 'strings',
+    description: `Count the number of vowels (a, e, i, o, u) in a string. Case insensitive.
+
+Example:
+Input: "Hello World"
+Output: 3
+Explanation: e, o, o are the vowels
+
+Input: "Programming"
+Output: 3
+Explanation: o, a, i are the vowels`,
+    starterCode: {
+      javascript: `function countVowels(str) {
+  // Write your code here
+}
+
+console.log(countVowels("Hello World")); // Expected: 3
+console.log(countVowels("Programming")); // Expected: 3`,
+      python: `def count_vowels(str):
+    # Write your code here
+    pass
+
+print(count_vowels("Hello World"))  # Expected: 3
+print(count_vowels("Programming"))  # Expected: 3`,
+      java: `public class Solution {
+    public static int countVowels(String str) {
+        // Write your code here
+        return 0;
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(countVowels("Hello World")); // Expected: 3
+        System.out.println(countVowels("Programming")); // Expected: 3
+    }
+}`,
+    },
+  },
+  {
+    id: 10,
+    title: 'Multiplication Table',
+    difficulty: 'easy',
+    category: 'loops',
+    description: `Print the multiplication table for a given number up to 10.
+
+Example:
+Input: n = 5
+Output:
+5 x 1 = 5
+5 x 2 = 10
+5 x 3 = 15
+...
+5 x 10 = 50`,
+    starterCode: {
+      javascript: `function multiplicationTable(n) {
+  // Write your code here
+}
+
+multiplicationTable(5);`,
+      python: `def multiplication_table(n):
+    # Write your code here
+    pass
+
+multiplication_table(5)`,
+      java: `public class Solution {
+    public static void multiplicationTable(int n) {
+        // Write your code here
+    }
+    
+    public static void main(String[] args) {
+        multiplicationTable(5);
+    }
+}`,
+    },
+  },
+  {
+    id: 11,
+    title: 'Factorial',
+    difficulty: 'easy',
+    category: 'math',
+    description: `Calculate the factorial of a number n.
+
+Factorial of n (n!) = n × (n-1) × (n-2) × ... × 1
+
+Example:
+Input: 5
+Output: 120
+Explanation: 5! = 5 × 4 × 3 × 2 × 1 = 120
+
+Input: 0
+Output: 1
+Explanation: 0! = 1 by definition`,
+    starterCode: {
+      javascript: `function factorial(n) {
+  // Write your code here
+}
+
+console.log(factorial(5)); // Expected: 120
+console.log(factorial(0)); // Expected: 1`,
+      python: `def factorial(n):
+    # Write your code here
+    pass
+
+print(factorial(5))  # Expected: 120
+print(factorial(0))  # Expected: 1`,
+      java: `public class Solution {
+    public static int factorial(int n) {
+        // Write your code here
+        return 0;
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(factorial(5)); // Expected: 120
+        System.out.println(factorial(0)); // Expected: 1
+    }
+}`,
+    },
+  },
+  {
+    id: 12,
+    title: 'Array Sum',
+    difficulty: 'easy',
+    category: 'arrays',
+    description: `Calculate the sum of all elements in an array.
+
+Example:
+Input: [1, 2, 3, 4, 5]
+Output: 15
+
+Input: [10, -5, 20]
+Output: 25`,
+    starterCode: {
+      javascript: `function arraySum(arr) {
+  // Write your code here
+}
+
+console.log(arraySum([1, 2, 3, 4, 5])); // Expected: 15
+console.log(arraySum([10, -5, 20])); // Expected: 25`,
+      python: `def array_sum(arr):
+    # Write your code here
+    pass
+
+print(array_sum([1, 2, 3, 4, 5]))  # Expected: 15
+print(array_sum([10, -5, 20]))  # Expected: 25`,
+      java: `public class Solution {
+    public static int arraySum(int[] arr) {
+        // Write your code here
+        return 0;
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(arraySum(new int[]{1, 2, 3, 4, 5})); // Expected: 15
+        System.out.println(arraySum(new int[]{10, -5, 20})); // Expected: 25
+    }
+}`,
+    },
+  },
+  {
+    id: 13,
+    title: 'Reverse Number',
+    difficulty: 'easy',
+    category: 'math',
+    description: `Reverse the digits of a number.
+
+Example:
+Input: 12345
+Output: 54321
+
+Input: -123
+Output: -321`,
+    starterCode: {
+      javascript: `function reverseNumber(num) {
+  // Write your code here
+}
+
+console.log(reverseNumber(12345)); // Expected: 54321
+console.log(reverseNumber(-123)); // Expected: -321`,
+      python: `def reverse_number(num):
+    # Write your code here
+    pass
+
+print(reverse_number(12345))  # Expected: 54321
+print(reverse_number(-123))  # Expected: -321`,
+      java: `public class Solution {
+    public static int reverseNumber(int num) {
+        // Write your code here
+        return 0;
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(reverseNumber(12345)); // Expected: 54321
+        System.out.println(reverseNumber(-123)); // Expected: -321
+    }
+}`,
+    },
+  },
+  {
+    id: 14,
     title: 'Palindrome Number',
     difficulty: 'easy',
     category: 'math',
@@ -320,6 +686,47 @@ print(is_palindrome(10))  # Expected: False`,
         System.out.println(isPalindrome(121)); // Expected: true
         System.out.println(isPalindrome(-121)); // Expected: false
         System.out.println(isPalindrome(10)); // Expected: false
+    }
+}`,
+    },
+  },
+  {
+    id: 15,
+    title: 'Prime Number Check',
+    difficulty: 'easy',
+    category: 'math',
+    description: `Check if a number is prime.
+
+A prime number is a number greater than 1 that has no positive divisors other than 1 and itself.
+
+Example:
+Input: 7
+Output: true
+
+Input: 12
+Output: false`,
+    starterCode: {
+      javascript: `function isPrime(num) {
+  // Write your code here
+}
+
+console.log(isPrime(7)); // Expected: true
+console.log(isPrime(12)); // Expected: false`,
+      python: `def is_prime(num):
+    # Write your code here
+    pass
+
+print(is_prime(7))  # Expected: True
+print(is_prime(12))  # Expected: False`,
+      java: `public class Solution {
+    public static boolean isPrime(int num) {
+        // Write your code here
+        return false;
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(isPrime(7)); // Expected: true
+        System.out.println(isPrime(12)); // Expected: false
     }
 }`,
     },
@@ -413,7 +820,7 @@ export default function CodePractice() {
         setOutput(data.output || '(No output)');
         setStatus('success');
         setExecutionTime(data.executionTime || (endTime - startTime) / 1000);
-        setMemoryUsed(data.memoryUsed);
+        setMemoryUsed(data.memoryUsed || null);
         toast({
           title: 'Success!',
           description: `Code executed successfully in ${((endTime - startTime) / 1000).toFixed(2)}s`,
@@ -421,6 +828,8 @@ export default function CodePractice() {
       } else {
         setOutput(data.error || data.output || 'Execution failed');
         setStatus('error');
+        setExecutionTime(null);
+        setMemoryUsed(null);
         toast({
           title: 'Execution Error',
           description: 'Your code encountered an error.',
@@ -481,7 +890,7 @@ export default function CodePractice() {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-24 pb-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -604,13 +1013,13 @@ export default function CodePractice() {
               {/* Execution Stats */}
               {(executionTime !== null || memoryUsed !== null) && (
                 <div className="flex gap-4 mt-3 text-sm text-muted-foreground">
-                  {executionTime !== null && (
+                  {executionTime !== null && executionTime !== undefined && (
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
                       <span>Time: {executionTime.toFixed(3)}s</span>
                     </div>
                   )}
-                  {memoryUsed !== null && (
+                  {memoryUsed !== null && memoryUsed !== undefined && (
                     <div className="flex items-center gap-2">
                       <MemoryStick className="w-4 h-4" />
                       <span>Memory: {memoryUsed.toFixed(2)} MB</span>
@@ -648,6 +1057,11 @@ export default function CodePractice() {
               </Card>
             )}
           </div>
+        </div>
+
+        {/* Leaderboard Section */}
+        <div className="mt-8">
+          <Leaderboard />
         </div>
       </div>
     </div>

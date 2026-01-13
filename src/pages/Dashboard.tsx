@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Target, TrendingUp, Award, Clock, Play, Calendar, Crown, Zap } from "lucide-react";
+import { Target, TrendingUp, Award, Clock, Play, Calendar, Crown, Zap, FileText, Code } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -152,22 +152,44 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Action Button */}
+        {/* Action Buttons */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4 }}
           className="mb-8"
         >
-          <Link to="/interview/setup">
-            <Button 
-              size="lg" 
-              className="w-full sm:w-auto bg-gradient-to-r from-primary to-accent hover:opacity-90 h-14 px-8 text-lg rounded-2xl group"
-            >
-              <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-              Start New Interview
-            </Button>
-          </Link>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Link to="/interview/setup" className="col-span-1">
+              <Button 
+                size="lg" 
+                className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 h-14 px-8 text-lg rounded-2xl group"
+              >
+                <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                Start Interview
+              </Button>
+            </Link>
+            <Link to="/cv-builder" className="col-span-1">
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:opacity-90 border-0 h-14 px-8 text-lg rounded-2xl group"
+              >
+                <FileText className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                Build CV
+              </Button>
+            </Link>
+            <Link to="/code-practice" className="col-span-1">
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90 border-0 h-14 px-8 text-lg rounded-2xl group"
+              >
+                <Code className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                Code Practice
+              </Button>
+            </Link>
+          </div>
         </motion.div>
 
         {/* Recent Interviews */}
