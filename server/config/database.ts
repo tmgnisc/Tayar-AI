@@ -173,6 +173,89 @@ async function createTables() {
         INDEX idx_status (status)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    // Code practice tables
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS code_submissions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        challenge_id INT NULL,
+        language VARCHAR(50) NOT NULL,
+        code TEXT NOT NULL,
+        status ENUM('pending', 'running', 'success', 'error', 'timeout') DEFAULT 'pending',
+        execution_time DECIMAL(10,3) NULL COMMENT 'Execution time in seconds',
+        memory_used DECIMAL(10,2) NULL COMMENT 'Memory used in MB',
+        output TEXT NULL,
+        error_message TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_submissions (user_id, created_at),
+        INDEX idx_status (status),
+        INDEX idx_language (language)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS coding_stats (
+        user_id INT PRIMARY KEY,
+        total_submissions INT DEFAULT 0,
+        accepted_submissions INT DEFAULT 0,
+        easy_solved INT DEFAULT 0,
+        medium_solved INT DEFAULT 0,
+        hard_solved INT DEFAULT 0,
+        favorite_language VARCHAR(50) NULL,
+        total_execution_time DECIMAL(10,2) DEFAULT 0 COMMENT 'Total execution time in seconds',
+        streak_days INT DEFAULT 0,
+        last_submission_date DATE NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS coding_challenges (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) UNIQUE NOT NULL,
+        description TEXT NOT NULL,
+        difficulty ENUM('easy', 'medium', 'hard') DEFAULT 'easy',
+        category VARCHAR(100) NULL COMMENT 'arrays, strings, dp, etc.',
+        tags JSON NULL COMMENT 'Array of tags',
+        starter_code JSON NULL COMMENT 'Starter code for each language',
+        test_cases JSON NULL COMMENT 'Array of test cases',
+        constraints TEXT NULL,
+        time_limit INT DEFAULT 5 COMMENT 'Time limit in seconds',
+        memory_limit INT DEFAULT 128 COMMENT 'Memory limit in MB',
+        difficulty_score INT DEFAULT 1 COMMENT 'Score from 1-10',
+        acceptance_rate DECIMAL(5,2) DEFAULT 0.00,
+        total_attempts INT DEFAULT 0,
+        total_accepted INT DEFAULT 0,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_difficulty (difficulty),
+        INDEX idx_category (category),
+        INDEX idx_active (is_active)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS code_snippets (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(255) NULL,
+        language VARCHAR(50) NOT NULL,
+        code TEXT NOT NULL,
+        is_public BOOLEAN DEFAULT FALSE,
+        tags JSON NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_snippets (user_id, created_at),
+        INDEX idx_public (is_public, created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
   } finally {
     connection.release();
   }

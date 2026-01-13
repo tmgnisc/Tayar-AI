@@ -12,12 +12,12 @@
 
 const BACKEND_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-// Professional interviewer images (using D-ID's hosted images for compatibility)
+// Professional interviewer images (you can replace with your own)
 export const INTERVIEWER_IMAGES = {
-  female: 'https://create-images-results.d-id.com/api_docs/assets/noelle.jpeg', // Professional woman
-  male: 'https://create-images-results.d-id.com/api_docs/assets/liam.jpeg', // Professional man
-  // Default to female for realistic interviewer
-  custom: 'https://create-images-results.d-id.com/api_docs/assets/noelle.jpeg',
+  female: 'https://create-images-results.d-id.com/api_docs/assets/noelle.jpeg',
+  male: 'https://create-images-results.d-id.com/api_docs/assets/liam.jpeg',
+  // You can upload your own image and use its URL
+  custom: 'https://randomuser.me/api/portraits/women/44.jpg',
 };
 
 interface CreateTalkResponse {

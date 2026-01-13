@@ -48,25 +48,38 @@ export const AIInterviewerVideoAvatar = ({
 
   useEffect(() => {
     if (videoRef.current && videoUrl) {
-      // Play video when speaking, pause when not
+      console.log('[Video Avatar] Video URL loaded, attempting to play...');
+      // Auto-play video when loaded
+      videoRef.current.play().catch(err => {
+        console.error("[Video Avatar] Error playing video:", err);
+        setUseVideo(false);
+      });
+    }
+  }, [videoUrl]);
+
+  useEffect(() => {
+    if (videoRef.current && videoUrl) {
+      // Control playback based on speaking status
       if (isSpeaking) {
         videoRef.current.play().catch(err => {
-          console.error("Error playing video:", err);
-          setUseVideo(false);
+          console.error("[Video Avatar] Error playing video:", err);
         });
       } else {
-        videoRef.current.pause();
-        videoRef.current.currentTime = 0;
+        // Keep playing but you can pause if needed
+        // videoRef.current.pause();
+        // videoRef.current.currentTime = 0;
       }
     }
   }, [isSpeaking, videoUrl]);
 
   const handleVideoLoad = () => {
+    console.log('[Video Avatar] ✅ Video loaded successfully');
     setIsVideoLoaded(true);
   };
 
-  const handleVideoError = () => {
-    console.error("Error loading video avatar");
+  const handleVideoError = (e: any) => {
+    console.error("[Video Avatar] ❌ Error loading video:", e);
+    console.error("[Video Avatar] Video URL was:", videoUrl);
     setUseVideo(false);
   };
 
@@ -117,22 +130,22 @@ export const AIInterviewerVideoAvatar = ({
             ease: "easeInOut",
           }}
         >
-          {/* Video Avatar (when available and speaking) */}
+          {/* Video Avatar (when available) */}
           {useVideo && videoUrl && (
             <video
               ref={videoRef}
               src={videoUrl}
-              className={`w-full h-full object-cover ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`w-full h-full object-cover absolute inset-0 ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
               onLoadedData={handleVideoLoad}
               onError={handleVideoError}
-              muted
+              autoPlay
               playsInline
               loop
             />
           )}
 
-          {/* Static Avatar (fallback or when not speaking) */}
-          {(!useVideo || !videoUrl || !isSpeaking) && (
+          {/* Static Avatar (fallback when no video) */}
+          {(!useVideo || !videoUrl) && (
             <img
               src={fallbackAvatarUrl}
               alt="AI Interviewer"

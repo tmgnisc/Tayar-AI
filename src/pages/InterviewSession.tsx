@@ -47,6 +47,10 @@ export default function InterviewSession() {
   }, [user]);
 
   useEffect(() => {
+    console.log('[InterviewSession] aiVideoUrl changed to:', aiVideoUrl);
+  }, [aiVideoUrl]);
+
+  useEffect(() => {
     if (interviewId && token) {
       loadInterviewData();
     }
@@ -127,9 +131,15 @@ export default function InterviewSession() {
 
       if (videoUrl) {
         console.log('[D-ID] Video generated successfully:', videoUrl);
+        console.log('[D-ID] Setting aiVideoUrl state to:', videoUrl);
         setAiVideoUrl(videoUrl);
         // Cache it
         videoCache.current.set(text, videoUrl);
+        
+        // Wait a bit for state to update
+        setTimeout(() => {
+          console.log('[D-ID] State should be updated now. Current aiVideoUrl:', videoUrl);
+        }, 100);
         
         toast({
           title: "AI Interviewer Ready",
@@ -489,9 +499,15 @@ export default function InterviewSession() {
                 </Avatar>
                 <div>
                   <h2 className="text-2xl font-semibold mb-2">Ready to start interview</h2>
-                  <p className="text-gray-400 mb-6">
+                  <p className="text-gray-400 mb-2">
                     Role: {interviewData.role} • Difficulty: {interviewData.difficulty}
                   </p>
+                  {import.meta.env.VITE_DID_API_KEY && (
+                    <div className="mb-4 flex items-center justify-center gap-2 text-blue-400 text-sm">
+                      <Video className="w-4 h-4" />
+                      <span>Realistic AI Interviewer Enabled</span>
+                    </div>
+                  )}
                   <Button 
                     onClick={startInterview}
                     disabled={isProcessing}
@@ -517,7 +533,7 @@ export default function InterviewSession() {
                 <AIInterviewerVideoAvatar 
                   isSpeaking={voiceStatus === 'speaking'}
                   videoUrl={aiVideoUrl} // D-ID generated video URL
-                  fallbackAvatarUrl="https://randomuser.me/api/portraits/women/44.jpg"
+                  fallbackAvatarUrl="https://create-images-results.d-id.com/api_docs/assets/noelle.jpeg"
                   size="lg"
                 />
                 {/* Video Generation Indicator */}
