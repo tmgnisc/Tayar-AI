@@ -10,6 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/config/api";
 import { VoiceInterviewService } from "@/services/voiceInterview";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AIInterviewerAvatar } from "@/components/AIInterviewerAvatar";
+import { AIInterviewerVideoAvatar } from "@/components/AIInterviewerVideoAvatar";
+import { generateAndWaitForVideo, INTERVIEWER_IMAGES } from "@/services/didAvatar";
 
 type InterviewStatus = 'idle' | 'connecting' | 'active' | 'ended';
 type VoiceStatus = 'idle' | 'listening' | 'speaking' | 'processing';
@@ -26,8 +29,11 @@ export default function InterviewSession() {
   const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
   const [isAnswering, setIsAnswering] = useState(false);
   const [localVideoStream, setLocalVideoStream] = useState<MediaStream | null>(null);
+  const [aiVideoUrl, setAiVideoUrl] = useState<string | undefined>(undefined);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const voiceServiceRef = useRef<VoiceInterviewService | null>(null);
+  const videoCache = useRef<Map<string, string>>(new Map()); // Cache videos by text
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const interviewId = searchParams.get('interviewId');
@@ -94,6 +100,50 @@ export default function InterviewSession() {
         description: "Failed to load interview data",
         variant: "destructive",
       });
+    }
+  };
+
+  // Generate D-ID video for interviewer speaking
+  const generateInterviewerVideo = async (text: string) => {
+    // Check cache first
+    if (videoCache.current.has(text)) {
+      const cachedUrl = videoCache.current.get(text);
+      console.log('[D-ID] Using cached video for:', text.substring(0, 50));
+      setAiVideoUrl(cachedUrl);
+      return;
+    }
+
+    setIsGeneratingVideo(true);
+    console.log('[D-ID] Generating video for:', text.substring(0, 50) + '...');
+    
+    try {
+      // Generate video using D-ID (will use realistic woman's face)
+      const videoUrl = await generateAndWaitForVideo(
+        text,
+        INTERVIEWER_IMAGES.custom, // Using the realistic woman photo
+        'en-US-JennyNeural', // Professional female voice
+        20 // Max 20 seconds wait
+      );
+
+      if (videoUrl) {
+        console.log('[D-ID] Video generated successfully:', videoUrl);
+        setAiVideoUrl(videoUrl);
+        // Cache it
+        videoCache.current.set(text, videoUrl);
+        
+        toast({
+          title: "AI Interviewer Ready",
+          description: "Video avatar generated successfully",
+        });
+      } else {
+        console.warn('[D-ID] Video generation failed, using static avatar');
+        setAiVideoUrl(undefined);
+      }
+    } catch (error) {
+      console.error('[D-ID] Error generating video:', error);
+      setAiVideoUrl(undefined);
+    } finally {
+      setIsGeneratingVideo(false);
     }
   };
 
@@ -185,6 +235,9 @@ export default function InterviewSession() {
       // Add assistant message to history
       voiceService.addAssistantMessage(firstMessage);
 
+      // Generate video for the first message (in background)
+      generateInterviewerVideo(firstMessage);
+
       // Speak the first question
       await voiceService.speak(firstMessage);
 
@@ -268,6 +321,9 @@ export default function InterviewSession() {
       if (nextQuestionId) {
         setCurrentQuestionId(nextQuestionId);
       }
+
+      // Generate video for the AI response (in background)
+      generateInterviewerVideo(nextMessage);
 
       // Check if interview is complete
       if (interviewComplete) {
@@ -457,19 +513,20 @@ export default function InterviewSession() {
           ) : (
             <div className="h-full grid grid-cols-2 gap-1">
               {/* Interviewer (AI) Side - Left */}
-              <div className="relative bg-gray-800 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-40 h-40 rounded-full bg-blue-600 flex items-center justify-center mx-auto mb-4">
-                    <span className="text-5xl text-white font-semibold">AI</span>
+              <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+                <AIInterviewerVideoAvatar 
+                  isSpeaking={voiceStatus === 'speaking'}
+                  videoUrl={aiVideoUrl} // D-ID generated video URL
+                  fallbackAvatarUrl="https://randomuser.me/api/portraits/women/44.jpg"
+                  size="lg"
+                />
+                {/* Video Generation Indicator */}
+                {isGeneratingVideo && (
+                  <div className="absolute top-4 left-4 flex items-center gap-2 bg-blue-600/80 backdrop-blur-sm rounded-lg px-3 py-2 z-10">
+                    <Loader2 className="w-4 h-4 text-white animate-spin" />
+                    <span className="text-white text-xs">Generating realistic avatar...</span>
                   </div>
-                  <p className="text-gray-400 text-sm">AI Interviewer</p>
-                  {voiceStatus === 'speaking' && (
-                    <div className="mt-2 flex items-center justify-center gap-2">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                      <span className="text-blue-400 text-xs">Speaking...</span>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
 
               {/* Candidate Side - Right */}
