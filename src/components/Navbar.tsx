@@ -64,19 +64,9 @@ export const Navbar = () => {
             >
               Job Listing
             </a>
-            {isAuthenticated && (
-              <Link to="/code-practice" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                Code Practice
-              </Link>
-            )}
             <Link to="/contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               Contact
             </Link>
-          {isAuthenticated && (
-            <Link to={user.role === 'admin' ? '/admin' : '/dashboard'} className="text-sm font-medium text-primary hover:underline transition-colors">
-              {user.role === 'admin' ? 'Admin' : 'Dashboard'}
-            </Link>
-          )}
           </div>
 
         {/* User menu */}
