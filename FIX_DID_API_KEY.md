@@ -271,3 +271,5 @@ Frontend console:
 
 **🔑 The API key is the issue. Get a fresh one from D-ID dashboard and update `server/.env`!**
 
+
+

@@ -238,3 +238,5 @@ const videoUrl = await generateAndWaitForVideo(
 - [ ] Restart frontend server
 - [ ] Start an interview to see the realistic talking avatar! 🎉
 
+
+

@@ -286,3 +286,5 @@ Cmd + Shift + R
 *Solution: Removed isSpeaking condition, added autoPlay*
 *Status: Ready to test!*
 
+
+

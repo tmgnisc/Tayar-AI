@@ -101,3 +101,5 @@ CREATE INDEX idx_challenge ON code_submissions(challenge_id);
 
 SELECT 'Code practice tables created successfully!' as result;
 
+
+
